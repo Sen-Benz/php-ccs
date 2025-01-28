@@ -334,58 +334,60 @@ admin_header('View Interview');
                                     </button>
                                 </div>
                             </form>
-                        <?php else: ?>
-                            <div class="alert alert-info">
-                                This interview has been <?php echo $interview['status']; ?>. 
-                                Scores cannot be modified.
-                            </div>
-
-                            <?php if ($existing_scores): ?>
-                                <h6 class="mt-4">Final Scores</h6>
-                                <div class="table-responsive">
-                                    <table class="table">
-                                        <thead>
-                                            <tr>
-                                                <th>Category</th>
-                                                <th>Score</th>
-                                                <th>Max Score</th>
-                                                <th>Remarks</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <?php 
-                                            $total_score = 0;
-                                            $total_max = 0;
-                                            foreach ($categories as $category => $info): 
-                                                $score = $existing_scores[$category] ?? 0;
-                                                $total_score += $score;
-                                                $total_max += $info['max_score'];
-                                            ?>
-                                                <tr>
-                                                    <td><?php echo $info['name']; ?></td>
-                                                    <td><?php echo $score; ?></td>
-                                                    <td><?php echo $info['max_score']; ?></td>
-                                                    <td><?php echo $existing_scores[$category] ?? ''; ?></td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                            <tr class="table-active fw-bold">
-                                                <td>Total</td>
-                                                <td><?php echo $total_score; ?></td>
-                                                <td><?php echo $total_max; ?></td>
-                                                <td>
-                                                    <?php 
-                                                        $percentage = ($total_score / $total_max) * 100;
-                                                        $passed = $percentage >= 70;
-                                                        echo '<span class="badge ' . 
-                                                             ($passed ? 'bg-success' : 'bg-danger') . '">' .
-                                                             ($passed ? 'PASSED' : 'FAILED') . '</span>';
-                                                    ?>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                        <?php elseif ($interview['status'] === 'completed'): ?>
+                            <div class="card mt-4">
+                                <div class="card-header">
+                                    <h5 class="card-title mb-0">Interview Results</h5>
                                 </div>
-                            <?php endif; ?>
+                                <div class="card-body">
+                                    <div class="row mb-4">
+                                        <div class="col-md-6">
+                                            <h3 class="h5">Total Score: 
+                                                <span class="badge <?php echo $interview['total_score'] >= 70 ? 'bg-success' : 'bg-danger'; ?>">
+                                                    <?php echo $interview['total_score']; ?>/100
+                                                </span>
+                                            </h3>
+                                            <h3 class="h5">Status: 
+                                                <span class="badge <?php echo $interview['interview_status'] === 'passed' ? 'bg-success' : 'bg-danger'; ?>">
+                                                    <?php echo ucfirst($interview['interview_status']); ?>
+                                                </span>
+                                            </h3>
+                                        </div>
+                                    </div>
+
+                                    <div class="table-responsive">
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th>Category</th>
+                                                    <th>Score</th>
+                                                    <th>Remarks</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <?php
+                                                $query = "SELECT * FROM interview_scores WHERE interview_id = ? ORDER BY category";
+                                                $stmt = $conn->prepare($query);
+                                                $stmt->execute([$interview['id']]);
+                                                $scores = $stmt->fetchAll();
+
+                                                foreach ($scores as $score):
+                                                ?>
+                                                    <tr>
+                                                        <td><?php echo ucwords(str_replace('_', ' ', $score['category'])); ?></td>
+                                                        <td>
+                                                            <span class="badge bg-secondary">
+                                                                <?php echo $score['score']; ?>/20
+                                                            </span>
+                                                        </td>
+                                                        <td><?php echo nl2br(htmlspecialchars($score['remarks'])); ?></td>
+                                                    </tr>
+                                                <?php endforeach; ?>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
                         <?php endif; ?>
                     </div>
                 </div>

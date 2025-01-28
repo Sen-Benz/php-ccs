@@ -1,15 +1,47 @@
 <?php
 class Email {
     private $error;
+    private $db;
 
     public function __construct() {
         // Initialize PHP's mail function settings
         ini_set("SMTP", "localhost");
         ini_set("smtp_port", "25");
+
+        // Initialize database connection
+        require_once __DIR__ . '/../config/database.php';
+        $database = new Database();
+        $this->db = $database->getConnection();
+    }
+
+    private function logEmail($recipient_email, $recipient_name, $subject, $template_name, $status, $error_message, $related_type, $related_id) {
+        try {
+            $query = "INSERT INTO email_logs 
+                      (recipient_email, recipient_name, subject, template_name, status, error_message, related_type, related_id)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+            
+            $stmt = $this->db->prepare($query);
+            $stmt->execute([
+                $recipient_email,
+                $recipient_name,
+                $subject,
+                $template_name,
+                $status,
+                $error_message,
+                $related_type,
+                $related_id
+            ]);
+            
+            return true;
+        } catch (Exception $e) {
+            error_log("Failed to log email: " . $e->getMessage());
+            return false;
+        }
     }
 
     private function sendMail($to, $subject, $body, $headers) {
-        return mail($to, $subject, $body, $headers);
+        $sent = mail($to, $subject, $body, $headers);
+        return $sent;
     }
 
     public function sendInterviewSchedule($to_email, $to_name, $interview_data) {
@@ -53,7 +85,118 @@ class Email {
                 </div>
             ";
 
-            return $this->sendMail($to_email, $subject, $body, $headers);
+            $sent = $this->sendMail($to_email, $subject, $body, $headers);
+            $this->logEmail(
+                $to_email,
+                $to_name,
+                $subject,
+                'interview_schedule',
+                $sent ? 'sent' : 'failed',
+                $sent ? null : $this->error,
+                'interview_schedule',
+                $interview_data['id']
+            );
+
+            return $sent;
+        } catch (Exception $e) {
+            $this->error = $e->getMessage();
+            return false;
+        }
+    }
+
+    public function sendInterviewResult($to_email, $to_name, $interview_data) {
+        try {
+            $subject = 'Interview Results - CCS Screening';
+            
+            $headers = "From: CCS Screening System <noreply@example.com>\r\n";
+            $headers .= "Reply-To: noreply@example.com\r\n";
+            $headers .= "MIME-Version: 1.0\r\n";
+            $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
+
+            // Calculate total score and result
+            $total_score = 0;
+            $scores_html = "";
+            foreach ($interview_data['scores'] as $category => $score) {
+                $total_score += $score['score'];
+                $scores_html .= "
+                    <tr>
+                        <td style='padding: 8px; border-bottom: 1px solid #dee2e6;'>" . 
+                            ucwords(str_replace('_', ' ', $category)) . 
+                        "</td>
+                        <td style='padding: 8px; border-bottom: 1px solid #dee2e6;'>{$score['score']}</td>
+                        <td style='padding: 8px; border-bottom: 1px solid #dee2e6;'>{$score['remarks']}</td>
+                    </tr>";
+            }
+            
+            $passed = $total_score >= 70;
+            $result_color = $passed ? '#28a745' : '#dc3545';
+            $result_text = $passed ? 'Congratulations! You have passed the interview.' : 'We regret to inform you that you did not meet the required score for the interview.';
+
+            $body = "
+                <div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'>
+                    <h2>Interview Results</h2>
+                    <p>Dear {$to_name},</p>
+                    <p>Thank you for attending the interview for the CCS Screening process.</p>
+                    
+                    <div style='background-color: #f8f9fa; padding: 20px; margin: 20px 0;'>
+                        <h3 style='margin-top: 0;'>Interview Details:</h3>
+                        <p><strong>Date:</strong> " . date('F d, Y', strtotime($interview_data['schedule_date'])) . "</p>
+                        <p><strong>Interviewer:</strong> {$interview_data['interviewer_name']}</p>
+                    </div>
+
+                    <div style='margin: 20px 0;'>
+                        <h3>Interview Scores:</h3>
+                        <table style='width: 100%; border-collapse: collapse; margin-bottom: 1rem;'>
+                            <thead>
+                                <tr style='background-color: #f8f9fa;'>
+                                    <th style='padding: 8px; border-bottom: 2px solid #dee2e6; text-align: left;'>Category</th>
+                                    <th style='padding: 8px; border-bottom: 2px solid #dee2e6; text-align: left;'>Score</th>
+                                    <th style='padding: 8px; border-bottom: 2px solid #dee2e6; text-align: left;'>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {$scores_html}
+                                <tr style='background-color: #f8f9fa;'>
+                                    <td style='padding: 8px; border-bottom: 1px solid #dee2e6;'><strong>Total Score</strong></td>
+                                    <td colspan='2' style='padding: 8px; border-bottom: 1px solid #dee2e6;'>
+                                        <strong>{$total_score}/100</strong>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div style='background-color: " . ($passed ? '#d4edda' : '#f8d7da') . "; color: " . ($passed ? '#155724' : '#721c24') . "; padding: 20px; margin: 20px 0; border-radius: 4px;'>
+                        <h3 style='margin-top: 0; color: {$result_color};'>Result</h3>
+                        <p style='margin-bottom: 0;'>{$result_text}</p>
+                    </div>
+
+                    " . ($passed ? "
+                    <div style='background-color: #e9ecef; padding: 20px; margin: 20px 0;'>
+                        <h3 style='margin-top: 0;'>Next Steps</h3>
+                        <p>We will contact you shortly with information about the next steps in the process.</p>
+                    </div>
+                    " : "
+                    <p>We appreciate your interest in joining our program and wish you the best in your future endeavors.</p>
+                    ") . "
+
+                    <p>Best regards,<br>CCS Screening Team</p>
+                </div>
+            ";
+
+            $sent = $this->sendMail($to_email, $subject, $body, $headers);
+            $this->logEmail(
+                $to_email,
+                $to_name,
+                $subject,
+                'interview_result',
+                $sent ? 'sent' : 'failed',
+                $sent ? null : $this->error,
+                'interview_result',
+                $interview_data['id']
+            );
+
+            return $sent;
         } catch (Exception $e) {
             $this->error = $e->getMessage();
             return false;
@@ -99,7 +242,19 @@ class Email {
                 </div>
             ";
 
-            return $this->sendMail($to_email, $subject, $body, $headers);
+            $sent = $this->sendMail($to_email, $subject, $body, $headers);
+            $this->logEmail(
+                $to_email,
+                $to_name,
+                $subject,
+                'interview_reminder',
+                $sent ? 'sent' : 'failed',
+                $sent ? null : $this->error,
+                'interview_reminder',
+                $interview_data['id']
+            );
+
+            return $sent;
         } catch (Exception $e) {
             $this->error = $e->getMessage();
             return false;
@@ -143,7 +298,19 @@ class Email {
                 </div>
             ";
 
-            return $this->sendMail($to_email, $subject, $body, $headers);
+            $sent = $this->sendMail($to_email, $subject, $body, $headers);
+            $this->logEmail(
+                $to_email,
+                $to_name,
+                $subject,
+                'interview_cancellation',
+                $sent ? 'sent' : 'failed',
+                $sent ? null : $this->error,
+                'interview_cancellation',
+                $interview_data['id']
+            );
+
+            return $sent;
         } catch (Exception $e) {
             $this->error = $e->getMessage();
             return false;

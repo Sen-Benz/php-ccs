@@ -49,12 +49,13 @@ class Auth {
         }
 
         // Insert new user
-        $query = "INSERT INTO " . $this->table_name . " (email, password, role) VALUES (?, ?, ?)";
+        $query = "INSERT INTO " . $this->table_name . " (email, password, role, status) VALUES (?, ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
         
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+        $status = ($role === 'applicant') ? 'pending' : 'active';
         
-        if($stmt->execute([$email, $hashed_password, $role])) {
+        if($stmt->execute([$email, $hashed_password, $role, $status])) {
             return ['success' => true, 'user_id' => $this->conn->lastInsertId()];
         }
         

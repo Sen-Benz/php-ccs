@@ -169,9 +169,14 @@ admin_header('Interview Schedule');
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
         <h1 class="h2">Interview Schedule</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
-            <a href="schedule_interview.php" class="btn btn-sm btn-primary">
-                <i class="bi bi-plus-circle"></i> Schedule New Interview
-            </a>
+            <div class="btn-group me-2">
+                <a href="interview_results.php" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-clipboard-check"></i> View Results
+                </a>
+                <a href="schedule_interview.php" class="btn btn-sm btn-primary">
+                    <i class="bi bi-plus-circle"></i> Schedule New Interview
+                </a>
+            </div>
         </div>
     </div>
 

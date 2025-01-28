@@ -134,38 +134,21 @@ admin_header('View Admin Accounts');
                             <td><?php echo date('M d, Y', strtotime($admin['created_at'])); ?></td>
                             <td>
                                 <div class="btn-group">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
-                                        Actions
-                                    </button>
-                                    <ul class="dropdown-menu">
-                                        <?php if ($admin['status'] === 'active'): ?>
-                                        <li>
-                                            <form method="POST" style="display: inline;">
-                                                <input type="hidden" name="admin_id" value="<?php echo $admin['id']; ?>">
-                                                <input type="hidden" name="action" value="deactivate">
-                                                <button type="submit" class="dropdown-item text-danger">
-                                                    <i class="bi bi-person-x"></i> Deactivate
-                                                </button>
-                                            </form>
-                                        </li>
-                                        <?php else: ?>
-                                        <li>
-                                            <form method="POST" style="display: inline;">
-                                                <input type="hidden" name="admin_id" value="<?php echo $admin['id']; ?>">
-                                                <input type="hidden" name="action" value="activate">
-                                                <button type="submit" class="dropdown-item text-success">
-                                                    <i class="bi bi-person-check"></i> Activate
-                                                </button>
-                                            </form>
-                                        </li>
-                                        <?php endif; ?>
-                                        <li><hr class="dropdown-divider"></li>
-                                        <li>
-                                            <a class="dropdown-item" href="view_admin_activity.php?id=<?php echo $admin['id']; ?>">
-                                                <i class="bi bi-clock-history"></i> View Activity
-                                            </a>
-                                        </li>
-                                    </ul>
+                                    <a href="view_admin_activity.php?id=<?php echo $admin['id']; ?>" 
+                                       class="btn btn-sm btn-info">
+                                        <i class="bi bi-activity"></i> View Activity
+                                    </a>
+                                    <?php if ($admin['status'] === 'active'): ?>
+                                        <button type="submit" name="action" value="deactivate" 
+                                                class="btn btn-sm btn-danger">
+                                            <i class="bi bi-person-x"></i> Deactivate
+                                        </button>
+                                    <?php else: ?>
+                                        <button type="submit" name="action" value="activate" 
+                                                class="btn btn-sm btn-success">
+                                            <i class="bi bi-person-check"></i> Activate
+                                        </button>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

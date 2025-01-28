@@ -25,7 +25,12 @@ CREATE TABLE applicants (
     contact_number VARCHAR(20) NOT NULL,
     address TEXT NOT NULL,
     birth_date DATE NOT NULL,
+    school VARCHAR(255) NOT NULL,
+    course ENUM('BSCS', 'BSIT') NOT NULL,
+    year_level ENUM('1st Year', '2nd Year', '3rd Year', '4th Year', '5th Year', 'Graduate') NOT NULL,
     progress_status ENUM('registered', 'part1_pending', 'part1_completed', 'part2_pending', 'part2_completed', 'interview_pending', 'interview_completed', 'passed', 'failed') NOT NULL DEFAULT 'registered',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
@@ -108,21 +113,58 @@ CREATE TABLE interview_schedules (
     status ENUM('scheduled', 'completed', 'cancelled') NOT NULL DEFAULT 'scheduled',
     notes TEXT,
     meeting_link VARCHAR(255) DEFAULT NULL,
+    interview_status ENUM('pending', 'passed', 'failed') NOT NULL DEFAULT 'pending',
+    total_score INT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (applicant_id) REFERENCES applicants(id),
     FOREIGN KEY (interviewer_id) REFERENCES users(id)
 );
 
+SET @dbname = DATABASE();
+SET @tablename = "interview_schedules";
+SET @columnname = "interview_status";
+SET @preparedStatement = (SELECT IF(
+  (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE
+      TABLE_SCHEMA = @dbname
+      AND TABLE_NAME = @tablename
+      AND COLUMN_NAME = @columnname
+  ) > 0,
+  "SELECT 1",
+  "ALTER TABLE interview_schedules ADD COLUMN interview_status ENUM('pending', 'passed', 'failed') NOT NULL DEFAULT 'pending'"
+));
+PREPARE alterIfNotExists FROM @preparedStatement;
+EXECUTE alterIfNotExists;
+DEALLOCATE PREPARE alterIfNotExists;
+
+SET @columnname = "total_score";
+SET @preparedStatement = (SELECT IF(
+  (
+    SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE
+      TABLE_SCHEMA = @dbname
+      AND TABLE_NAME = @tablename
+      AND COLUMN_NAME = @columnname
+  ) > 0,
+  "SELECT 1",
+  "ALTER TABLE interview_schedules ADD COLUMN total_score INT DEFAULT NULL"
+));
+PREPARE alterIfNotExists FROM @preparedStatement;
+EXECUTE alterIfNotExists;
+DEALLOCATE PREPARE alterIfNotExists;
+
 -- Interview Scores table
+DROP TABLE IF EXISTS interview_scores;
 CREATE TABLE interview_scores (
     id INT PRIMARY KEY AUTO_INCREMENT,
-    interview_schedule_id INT NOT NULL,
-    category VARCHAR(50) NOT NULL,
+    interview_id INT NOT NULL,
+    category ENUM('technical_skills', 'communication', 'problem_solving', 'cultural_fit', 'overall_impression') NOT NULL,
     score INT NOT NULL,
     remarks TEXT,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (interview_schedule_id) REFERENCES interview_schedules(id)
-);
+    created_at TIMESTAMP NOT NULL DEFAULT current_timestamp(),
+    FOREIGN KEY (interview_id) REFERENCES interview_schedules(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Activity logs table
 CREATE TABLE activity_logs (
@@ -171,3 +213,22 @@ CREATE TABLE exam_results (
     FOREIGN KEY (applicant_id) REFERENCES applicants(id),
     FOREIGN KEY (exam_id) REFERENCES exams(id)
 );
+
+-- Email logs table
+CREATE TABLE IF NOT EXISTS `email_logs` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `recipient_email` varchar(255) NOT NULL,
+  `recipient_name` varchar(255) NOT NULL,
+  `subject` varchar(255) NOT NULL,
+  `template_name` varchar(50) NOT NULL,
+  `status` enum('sent','failed') NOT NULL,
+  `error_message` text DEFAULT NULL,
+  `related_type` enum('interview_schedule','interview_result','interview_reminder','interview_cancellation') NOT NULL,
+  `related_id` int(11) NOT NULL,
+  `sent_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  PRIMARY KEY (`id`),
+  KEY `recipient_email` (`recipient_email`),
+  KEY `template_name` (`template_name`),
+  KEY `status` (`status`),
+  KEY `related_type_id` (`related_type`, `related_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

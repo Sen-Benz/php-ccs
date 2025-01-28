@@ -51,18 +51,50 @@ $base_path = $is_super_admin ? '/php-ccs/php-ccs' : '/php-ccs/php-ccs';
                     </div>
                     <i class="bi bi-chevron-down"></i>
                 </a>
-                <div class="collapse <?php echo is_menu_open(['create_admin', 'list_admins']); ?>" id="adminSubmenu">
-                    <ul class="nav nav-pills flex-column ms-3 mt-1">
+                <div class="collapse <?php echo is_menu_open(['list_admins', 'create_admin']); ?>" id="adminSubmenu">
+                    <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a href="<?php echo $base_path; ?>/admin/super/create_admin.php" class="nav-link <?php echo is_active('create_admin'); ?>">
+                            <a href="<?php echo $base_path; ?>/admin/super/list_admins.php" 
+                               class="nav-link <?php echo is_active('list_admins'); ?>">
+                                <i class="bi bi-list-ul me-2"></i>
+                                List Admins
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="<?php echo $base_path; ?>/admin/super/create_admin.php" 
+                               class="nav-link <?php echo is_active('create_admin'); ?>">
                                 <i class="bi bi-person-plus me-2"></i>
                                 Create Admin
                             </a>
                         </li>
+                    </ul>
+                </div>
+            </li>
+
+            <!-- Applicant Management (Super Admin Only) -->
+            <li class="nav-item mb-1">
+                <a href="#applicantSubmenu" data-bs-toggle="collapse" 
+                   class="nav-link d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-mortarboard me-2"></i>
+                        Applicant Management
+                    </div>
+                    <i class="bi bi-chevron-down"></i>
+                </a>
+                <div class="collapse <?php echo is_menu_open(['manage_applicants', 'list_applicants']); ?>" id="applicantSubmenu">
+                    <ul class="nav flex-column">
                         <li class="nav-item">
-                            <a href="<?php echo $base_path; ?>/admin/super/list_admins.php" class="nav-link <?php echo is_active('list_admins'); ?>">
-                                <i class="bi bi-person-lines-fill me-2"></i>
-                                View Admins
+                            <a href="<?php echo $base_path; ?>/admin/super/manage_applicants.php" 
+                               class="nav-link <?php echo is_active('manage_applicants'); ?>">
+                                <i class="bi bi-person-check me-2"></i>
+                                Manage Applicants
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="<?php echo $base_path; ?>/admin/super/list_applicants.php" 
+                               class="nav-link <?php echo is_active('list_applicants'); ?>">
+                                <i class="bi bi-list-ul me-2"></i>
+                                List Applicants
                             </a>
                         </li>
                     </ul>
@@ -80,20 +112,20 @@ $base_path = $is_super_admin ? '/php-ccs/php-ccs' : '/php-ccs/php-ccs';
                     </div>
                     <i class="bi bi-chevron-down"></i>
                 </a>
-                <div class="collapse <?php echo is_menu_open(['list_applicants', 'applicant_status']); ?>" id="applicantSubmenu">
+                <div class="collapse <?php echo is_menu_open(['applicant_status', 'applicants_overview']); ?>" id="applicantSubmenu">
                     <ul class="nav nav-pills flex-column ms-3 mt-1">
-                        <li class="nav-item">
-                            <a href="<?php echo $base_path . ($is_super_admin ? '/admin/super/list_applicants.php' : '/admin/list_applicants.php'); ?>" 
-                               class="nav-link <?php echo is_active('list_applicants'); ?>">
-                                <i class="bi bi-list-ul me-2"></i>
-                                View Applicants
-                            </a>
-                        </li>
                         <li class="nav-item">
                             <a href="<?php echo $base_path . ($is_super_admin ? '/admin/super/applicant_status.php' : '/admin/applicant_status.php'); ?>" 
                                class="nav-link <?php echo is_active('applicant_status'); ?>">
+                                <i class="bi bi-list-ul me-2"></i>
+                                List All Applicants
+                            </a>
+                        </li>
+                        <li class="nav-item">
+                            <a href="<?php echo $base_path . ($is_super_admin ? '/admin/super/applicants_overview.php' : '/admin/applicants_overview.php'); ?>" 
+                               class="nav-link <?php echo is_active('applicants_overview'); ?>">
                                 <i class="bi bi-graph-up me-2"></i>
-                                Status Overview
+                                Status Analytics
                             </a>
                         </li>
                     </ul>
@@ -206,22 +238,45 @@ $base_path = $is_super_admin ? '/php-ccs/php-ccs' : '/php-ccs/php-ccs';
 
             <!-- Settings -->
             <li class="nav-item mb-1">
-                <a href="<?php echo $base_path . ($is_super_admin ? '/admin/super/settings.php' : '/admin/settings.php'); ?>" 
-                   class="nav-link <?php echo is_active('settings'); ?>">
-                    <i class="bi bi-gear me-2"></i>
-                    Settings
+                <a href="#settingsSubmenu" data-bs-toggle="collapse" 
+                   class="nav-link d-flex justify-content-between align-items-center">
+                    <div>
+                        <i class="bi bi-gear me-2"></i>
+                        Settings
+                    </div>
+                    <i class="bi bi-chevron-down"></i>
                 </a>
+                <div class="collapse <?php echo is_menu_open(['system_settings', 'profile_settings']); ?>" id="settingsSubmenu">
+                    <ul class="nav nav-pills flex-column ms-3 mt-1">
+                        <?php if($is_super_admin): ?>
+                        <li class="nav-item">
+                            <a href="<?php echo $base_path; ?>/admin/super/system_settings.php" 
+                               class="nav-link <?php echo is_active('system_settings'); ?>">
+                                <i class="bi bi-sliders me-2"></i>
+                                System Settings
+                            </a>
+                        </li>
+                        <?php endif; ?>
+                        <li class="nav-item">
+                            <a href="<?php echo $base_path . ($is_super_admin ? '/admin/super/profile_settings.php' : '/admin/profile_settings.php'); ?>" 
+                               class="nav-link <?php echo is_active('profile_settings'); ?>">
+                                <i class="bi bi-person-gear me-2"></i>
+                                Profile Settings
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </li>
         </ul>
 
         <hr class="text-white">
         <div class="dropdown">
             <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-person-circle me-2"></i>
+                <i class="bi bi-person-circle fs-4 me-2"></i>
                 <strong><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></strong>
             </a>
             <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
-                <li><a class="dropdown-item" href="<?php echo $base_path . ($is_super_admin ? '/admin/super/profile.php' : '/admin/profile.php'); ?>">Profile</a></li>
+                <li><a class="dropdown-item" href="<?php echo $base_path . ($is_super_admin ? '/admin/super/profile_settings.php' : '/admin/profile_settings.php'); ?>">Profile Settings</a></li>
                 <li><hr class="dropdown-divider"></li>
                 <li><a class="dropdown-item" href="<?php echo $base_path; ?>/logout.php">Sign out</a></li>
             </ul>

@@ -11,7 +11,7 @@ $user = $auth->getCurrentUser();
 
 // Get applicant details
 $query = "SELECT * FROM applicants WHERE user_id = ?";
-$stmt = $exam->conn->prepare($query);
+$stmt = $exam->getConnection()->prepare($query);
 $stmt->execute([$user['id']]);
 $applicant = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -24,7 +24,7 @@ $query = "SELECT e.* FROM exams e
               WHERE er.exam_id = e.id 
               AND er.applicant_id = ?
           )";
-$stmt = $exam->conn->prepare($query);
+$stmt = $exam->getConnection()->prepare($query);
 $stmt->execute([$applicant['id']]);
 $available_exams = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

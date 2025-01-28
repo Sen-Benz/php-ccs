@@ -24,7 +24,6 @@ try {
     $query = "SELECT 
                 a.*,
                 CONCAT(a.first_name, ' ', a.last_name) as full_name,
-                u.username,
                 u.email,
                 u.created_at as registration_date
               FROM applicants a
@@ -33,7 +32,7 @@ try {
     
     $stmt = $conn->prepare($query);
     $stmt->execute([$applicant_id]);
-    $applicant = $stmt->fetch();
+    $applicant = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if (!$applicant) {
         throw new Exception('Applicant not found.');
@@ -61,29 +60,17 @@ try {
     // Get interview history
     $query = "SELECT 
                 i.*,
-                CONCAT(u.first_name, ' ', u.last_name) as interviewer_name,
-                u.role as interviewer_role,
-                (
-                    SELECT SUM(score)
-                    FROM interview_scores
-                    WHERE interview_schedule_id = i.id
-                ) as total_score,
-                (
-                    SELECT GROUP_CONCAT(
-                        CONCAT(category, ':', score, ':', remarks)
-                        SEPARATOR '|'
-                    )
-                    FROM interview_scores
-                    WHERE interview_schedule_id = i.id
-                ) as score_details
+                CONCAT(a.first_name, ' ', a.last_name) as interviewer_name,
+                a.id as interviewer_id
               FROM interview_schedules i
               JOIN users u ON i.interviewer_id = u.id
+              JOIN admins a ON u.id = a.user_id
               WHERE i.applicant_id = ?
               ORDER BY i.schedule_date DESC, i.start_time DESC";
     
     $stmt = $conn->prepare($query);
     $stmt->execute([$applicant_id]);
-    $interviews = $stmt->fetchAll();
+    $interviews = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 } catch (Exception $e) {
     $error = $e->getMessage();
@@ -164,18 +151,29 @@ admin_header('View Applicant');
                     </div>
                     <div class="card-body">
                         <table class="table table-sm">
+                            <?php if (isset($applicant['school'])): ?>
                             <tr>
                                 <th>School:</th>
                                 <td><?php echo htmlspecialchars($applicant['school']); ?></td>
                             </tr>
+                            <?php endif; ?>
+                            <?php if (isset($applicant['course'])): ?>
                             <tr>
                                 <th>Course:</th>
                                 <td><?php echo htmlspecialchars($applicant['course']); ?></td>
                             </tr>
+                            <?php endif; ?>
+                            <?php if (isset($applicant['year_level'])): ?>
                             <tr>
                                 <th>Year Level:</th>
                                 <td><?php echo htmlspecialchars($applicant['year_level']); ?></td>
                             </tr>
+                            <?php endif; ?>
+                            <?php if (empty($applicant['school']) && empty($applicant['course']) && empty($applicant['year_level'])): ?>
+                            <tr>
+                                <td colspan="2" class="text-center text-muted">No academic information available</td>
+                            </tr>
+                            <?php endif; ?>
                         </table>
                     </div>
                 </div>
@@ -278,7 +276,7 @@ admin_header('View Applicant');
                                                         <strong>Interviewer:</strong>
                                                         <?php echo htmlspecialchars($interview['interviewer_name']); ?>
                                                         <span class="badge bg-secondary">
-                                                            <?php echo strtoupper($interview['interviewer_role']); ?>
+                                                            Admin
                                                         </span>
                                                     </div>
                                                     <div class="col-md-6">

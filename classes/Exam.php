@@ -9,6 +9,10 @@ class Exam {
         $this->conn = $database->getConnection();
     }
 
+    public function getConnection() {
+        return $this->conn;
+    }
+
     public function createExam($title, $description, $type, $duration_minutes, $passing_score, $created_by) {
         $query = "INSERT INTO exams (title, description, type, duration_minutes, passing_score, created_by) 
                   VALUES (?, ?, ?, ?, ?, ?)";
