@@ -1,291 +1,266 @@
 <?php
+require_once '../config/config.php';
 require_once '../classes/Auth.php';
-require_once '../config/database.php';
 require_once '../includes/layout.php';
+require_once '../includes/utilities.php';
 
-$auth = new Auth();
-$auth->requireRole('applicant');
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ' . BASE_URL . 'login.php');
+    exit;
+}
 
-$user = $auth->getCurrentUser();
+$user_id = $_SESSION['user_id'];
+$db = new Database();
 
-// Get applicant's progress and exam results
-$database = new Database();
-$conn = $database->getConnection();
+// Initialize default values
+$recent_exams = [];
+$exam_stats = [
+    'total_exams' => 0,
+    'average_score' => 0,
+    'highest_score' => 0
+];
+$available_exams = [];
+$status = 'registered';
+$user_data = [];
 
-$query = "SELECT a.*, 
-    (SELECT COUNT(*) FROM exam_results er WHERE er.applicant_id = a.id) as exams_completed,
-    (SELECT COUNT(*) FROM exam_results er WHERE er.applicant_id = a.id AND er.status = 'passed') as exams_passed,
-    (SELECT COUNT(*) FROM interview_schedules i WHERE i.applicant_id = a.id AND i.status = 'completed') as interview_completed,
-    (SELECT schedule_date FROM interview_schedules i WHERE i.applicant_id = a.id ORDER BY schedule_date DESC LIMIT 1) as interview_date
-    FROM applicants a 
-    WHERE a.user_id = ?";
-$stmt = $conn->prepare($query);
-$stmt->execute([$user['id']]);
-$applicant = $stmt->fetch(PDO::FETCH_ASSOC);
+try {
+    // Get applicant's exam results
+    $stmt = $db->query(
+        "SELECT er.*, e.title as exam_title, e.duration_minutes,
+                DATE_FORMAT(er.created_at, '%M %d, %Y') as completion_date
+         FROM exam_results er
+         JOIN exams e ON er.exam_id = e.id
+         WHERE er.user_id = ?
+         ORDER BY er.created_at DESC
+         LIMIT 5",
+        [$user_id]
+    );
+    $recent_exams = $stmt->fetchAll();
 
-// Get exam results
-$query = "SELECT er.*, e.title, e.part 
-          FROM exam_results er 
-          JOIN exams e ON er.exam_id = e.id 
-          WHERE er.applicant_id = ? 
-          ORDER BY er.completed_at DESC";
-$stmt = $conn->prepare($query);
-$stmt->execute([$applicant['id']]);
-$exam_results = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Get total exams taken
+    $stmt = $db->query(
+        "SELECT COUNT(*) as total_exams,
+                COALESCE(AVG(score), 0) as average_score,
+                COALESCE(MAX(score), 0) as highest_score
+         FROM exam_results
+         WHERE user_id = ?",
+        [$user_id]
+    );
+    $exam_stats = $stmt->fetch();
 
-// Get announcements
-$query = "SELECT * FROM announcements WHERE target_role IN ('all', 'applicant') ORDER BY created_at DESC LIMIT 5";
-$stmt = $conn->prepare($query);
-$stmt->execute();
-$announcements = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    // Get upcoming/available exams
+    $stmt = $db->query(
+        "SELECT e.* 
+         FROM exams e
+         LEFT JOIN exam_results er ON er.exam_id = e.id AND er.user_id = ?
+         WHERE e.status = 'active' AND er.id IS NULL
+         LIMIT 3",
+        [$user_id]
+    );
+    $available_exams = $stmt->fetchAll();
 
-// Calculate completion percentage
-$total_steps = 4; // Registration, Part 1, Part 2, Interview
-$completed_steps = 1; // Registration is done
-$completed_steps += $applicant['exams_completed'];
-$completed_steps += $applicant['interview_completed'];
-$progress_percentage = ($completed_steps / $total_steps) * 100;
+    // Get user data
+    $stmt = $db->query(
+        "SELECT u.*, a.status 
+         FROM users u 
+         LEFT JOIN applicants a ON a.user_id = u.id 
+         WHERE u.id = ?",
+        [$user_id]
+    );
+    $user_data = $stmt->fetch();
+    
+    // If no applicant record exists, create one
+    if (empty($user_data['status'])) {
+        $db->query(
+            "INSERT INTO applicants (user_id, status, created_at) 
+             VALUES (?, 'registered', NOW())",
+            [$user_id]
+        );
+        $user_data['status'] = 'registered';
+    }
 
-get_header('Applicant Dashboard');
-get_sidebar('applicant');
+} catch (Exception $e) {
+    error_log("Dashboard Error: " . $e->getMessage());
+}
+
+// Helper functions for safe string handling
+function safe_string($str) {
+    return htmlspecialchars($str ?? '', ENT_QUOTES, 'UTF-8');
+}
+
+function safe_ucwords($str) {
+    return ucwords(str_replace('_', ' ', $str ?? ''));
+}
+
+get_header('Dashboard');
 ?>
 
-<div class="content">
-    <div class="container-fluid px-4 py-4" style="margin-top: 60px;">
-        <div class="row align-items-center mb-4">
-            <div class="col">
-                <h1 class="h3 mb-0">Welcome, <?php echo htmlspecialchars($applicant['first_name']); ?>!</h1>
-                <p class="text-muted">Track your CCS screening progress</p>
-            </div>
-            <div class="col-auto">
-                <span class="badge bg-primary"><?php echo ucfirst($applicant['preferred_course']); ?> Applicant</span>
-            </div>
-        </div>
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <?php get_sidebar('applicant'); ?>
 
-        <!-- Progress Overview -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Overall Progress</h5>
-                        <div class="progress mb-3" style="height: 20px;">
-                            <div class="progress-bar" role="progressbar" 
-                                 style="width: <?php echo $progress_percentage; ?>%;"
-                                 aria-valuenow="<?php echo $progress_percentage; ?>" 
-                                 aria-valuemin="0" 
-                                 aria-valuemax="100">
-                                <?php echo round($progress_percentage); ?>%
-                            </div>
-                        </div>
-                        <div class="row text-center">
-                            <div class="col">
-                                <div class="d-inline-block px-3">
-                                    <i class="bi bi-check-circle text-success me-1"></i>
-                                    Registration
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="d-inline-block px-3">
-                                    <?php if ($applicant['exams_completed'] > 0): ?>
-                                        <i class="bi bi-check-circle text-success me-1"></i>
-                                    <?php else: ?>
-                                        <i class="bi bi-circle text-muted me-1"></i>
-                                    <?php endif; ?>
-                                    Exam Part 1
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="d-inline-block px-3">
-                                    <?php if ($applicant['exams_completed'] > 1): ?>
-                                        <i class="bi bi-check-circle text-success me-1"></i>
-                                    <?php else: ?>
-                                        <i class="bi bi-circle text-muted me-1"></i>
-                                    <?php endif; ?>
-                                    Exam Part 2
-                                </div>
-                            </div>
-                            <div class="col">
-                                <div class="d-inline-block px-3">
-                                    <?php if ($applicant['interview_completed']): ?>
-                                        <i class="bi bi-check-circle text-success me-1"></i>
-                                    <?php else: ?>
-                                        <i class="bi bi-circle text-muted me-1"></i>
-                                    <?php endif; ?>
-                                    Interview
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+        <!-- Main Content -->
+        <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
+            <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                <h1 class="h2">Welcome, <?php echo safe_string($user_data['first_name'] ?? ''); ?></h1>
             </div>
-        </div>
 
-        <div class="row">
-            <!-- Status Cards -->
-            <div class="col-md-6 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Application Status</h5>
-                        
-                        <!-- Exam Status -->
-                        <div class="d-flex align-items-center mb-3">
-                            <div class="flex-shrink-0">
-                                <i class="bi bi-file-text fs-4 text-primary"></i>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <h6 class="mb-0">Entrance Exam</h6>
-                                <small class="text-muted">
-                                    <?php
-                                    if ($applicant['exams_completed'] == 0) {
-                                        echo "Not started";
-                                    } elseif ($applicant['exams_completed'] == 1) {
-                                        echo "Part 1 completed";
-                                    } elseif ($applicant['exams_completed'] == 2) {
-                                        echo "All parts completed";
-                                    }
-                                    ?>
-                                </small>
-                            </div>
-                        </div>
-                        
-                        <!-- Interview Status -->
-                        <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0">
-                                <i class="bi bi-camera-video fs-4 text-primary"></i>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <h6 class="mb-0">Interview</h6>
-                                <small class="text-muted">
-                                    <?php
-                                    if ($applicant['interview_completed']) {
-                                        echo "Completed";
-                                    } elseif ($applicant['interview_date']) {
-                                        echo "Scheduled for " . date('F j, Y', strtotime($applicant['interview_date']));
-                                    } else {
-                                        echo "Not scheduled";
-                                    }
-                                    ?>
-                                </small>
-                            </div>
+            <!-- Status Card -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Application Status</h5>
+                            <?php
+                            $status = $user_data['status'] ?? 'registered';
+                            $status_badges = [
+                                'registered' => 'bg-secondary',
+                                'screening' => 'bg-primary',
+                                'interview_scheduled' => 'bg-warning',
+                                'interview_completed' => 'bg-info',
+                                'accepted' => 'bg-success',
+                                'rejected' => 'bg-danger'
+                            ];
+                            $badge_class = $status_badges[$status] ?? 'bg-secondary';
+                            ?>
+                            <span class="badge <?php echo $badge_class; ?> p-2">
+                                <?php echo safe_ucwords($status); ?>
+                            </span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Next Steps -->
-            <div class="col-md-6 mb-4">
-                <div class="card h-100">
-                    <div class="card-body">
-                        <h5 class="card-title">Next Steps</h5>
-                        
-                        <?php if ($applicant['exams_completed'] == 0): ?>
-                            <div class="alert alert-info mb-0">
-                                <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>Take Your Entrance Exam</h6>
-                                <p class="mb-0">You can now take Part 1 of the entrance examination. Click the button below to start.</p>
-                                <hr>
-                                <a href="exam.php" class="btn btn-primary">Start Exam</a>
-                            </div>
-                        <?php elseif ($applicant['exams_completed'] == 1): ?>
-                            <div class="alert alert-info mb-0">
-                                <h6 class="alert-heading"><i class="bi bi-info-circle me-2"></i>Complete Part 2</h6>
-                                <p class="mb-0">You've completed Part 1. Proceed to take Part 2 of the entrance examination.</p>
-                                <hr>
-                                <a href="exam.php" class="btn btn-primary">Take Part 2</a>
-                            </div>
-                        <?php elseif (!$applicant['interview_date'] && $applicant['exams_passed'] == 2): ?>
-                            <div class="alert alert-success mb-0">
-                                <h6 class="alert-heading"><i class="bi bi-check-circle me-2"></i>Schedule Your Interview</h6>
-                                <p class="mb-0">Congratulations on passing the entrance exam! Please schedule your interview.</p>
-                                <hr>
-                                <a href="interview_schedule.php" class="btn btn-success">Schedule Now</a>
-                            </div>
-                        <?php elseif ($applicant['interview_date'] && !$applicant['interview_completed']): ?>
-                            <div class="alert alert-success" role="alert">
-                                <h6 class="alert-heading"><i class="bi bi-calendar-check me-2"></i>Interview Scheduled</h6>
-                                <p class="mb-0">Your interview is scheduled for: 
-                                    <strong><?php echo date('F j, Y', strtotime($applicant['interview_date'])); ?></strong>
-                                </p>
-                            </div>
-                            <a href="interview_details.php" class="btn btn-primary">View Details</a>
-                        <?php elseif ($applicant['interview_completed']): ?>
-                            <div class="alert alert-success mb-0">
-                                <h6 class="alert-heading"><i class="bi bi-check-circle me-2"></i>All Steps Completed</h6>
-                                <p class="mb-0">You have completed all the required steps. We will notify you of the results soon.</p>
-                            </div>
-                        <?php endif; ?>
+            <!-- Stats Cards -->
+            <div class="row mb-4">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">Total Exams Taken</h6>
+                            <h2 class="card-title mb-0"><?php echo (int)($exam_stats['total_exams'] ?? 0); ?></h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">Average Score</h6>
+                            <h2 class="card-title mb-0"><?php echo number_format($exam_stats['average_score'] ?? 0, 1); ?>%</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body">
+                            <h6 class="card-subtitle mb-2 text-muted">Highest Score</h6>
+                            <h2 class="card-title mb-0"><?php echo number_format($exam_stats['highest_score'] ?? 0, 1); ?>%</h2>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
 
-        <div class="row">
-            <!-- Recent Exam Results -->
-            <div class="col-md-7 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Recent Exam Results</h5>
-                        <?php if (empty($exam_results)): ?>
-                            <p class="text-muted mb-0">No exam results yet.</p>
-                        <?php else: ?>
-                            <div class="table-responsive">
-                                <table class="table table-hover">
-                                    <thead>
-                                        <tr>
-                                            <th>Exam</th>
-                                            <th>Score</th>
-                                            <th>Status</th>
-                                            <th>Date</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach (array_slice($exam_results, 0, 3) as $result): ?>
+            <!-- Recent Exams -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title">Recent Exam Results</h5>
+                                <a href="results.php" class="btn btn-sm btn-primary">View All Results</a>
+                            </div>
+                            <?php if (empty($recent_exams)): ?>
+                                <p class="text-muted">You haven't taken any exams yet.</p>
+                            <?php else: ?>
+                                <div class="table-responsive">
+                                    <table class="table">
+                                        <thead>
                                             <tr>
-                                                <td><?php echo htmlspecialchars($result['title']); ?></td>
-                                                <td><?php echo $result['score']; ?>%</td>
-                                                <td>
-                                                    <?php if ($result['status'] === 'passed'): ?>
-                                                        <span class="badge bg-success">Passed</span>
-                                                    <?php else: ?>
-                                                        <span class="badge bg-danger">Failed</span>
-                                                    <?php endif; ?>
-                                                </td>
-                                                <td><?php echo date('M j, Y', strtotime($result['completed_at'])); ?></td>
+                                                <th>Exam</th>
+                                                <th>Score</th>
+                                                <th>Completion Time</th>
+                                                <th>Date</th>
                                             </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <?php if (count($exam_results) > 3): ?>
-                                <a href="exam_results.php" class="btn btn-link">View all results</a>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($recent_exams as $exam): ?>
+                                                <tr>
+                                                    <td><?php echo safe_string($exam['exam_title']); ?></td>
+                                                    <td>
+                                                        <span class="badge <?php echo getScoreBadgeClass($exam['score'] ?? 0); ?>">
+                                                            <?php echo number_format($exam['score'] ?? 0, 1); ?>%
+                                                        </span>
+                                                    </td>
+                                                    <td><?php echo number_format($exam['completion_time'] ?? 0, 1); ?> min</td>
+                                                    <td><?php echo safe_string($exam['completion_date']); ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
                             <?php endif; ?>
-                        <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Announcements -->
-            <div class="col-md-5 mb-4">
-                <div class="card">
-                    <div class="card-body">
-                        <h5 class="card-title">Recent Announcements</h5>
-                        <?php if (empty($announcements)): ?>
-                            <p class="text-muted mb-0">No announcements at this time.</p>
-                        <?php else: ?>
-                            <?php foreach ($announcements as $announcement): ?>
-                                <div class="border-bottom mb-3 pb-3">
-                                    <h6><?php echo htmlspecialchars($announcement['title']); ?></h6>
-                                    <p class="mb-1"><?php echo htmlspecialchars($announcement['content']); ?></p>
-                                    <small class="text-muted">
-                                        <?php echo date('F j, Y', strtotime($announcement['created_at'])); ?>
-                                    </small>
+            <!-- Available Exams -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5 class="card-title">Available Exams</h5>
+                                <a href="exams.php" class="btn btn-sm btn-primary">View All Exams</a>
+                            </div>
+                            <?php if (empty($available_exams)): ?>
+                                <p class="text-muted">No exams are currently available.</p>
+                            <?php else: ?>
+                                <div class="row">
+                                    <?php foreach ($available_exams as $exam): ?>
+                                        <div class="col-md-4">
+                                            <div class="card">
+                                                <div class="card-body">
+                                                    <h6 class="card-title"><?php echo safe_string($exam['title']); ?></h6>
+                                                    <p class="card-text small"><?php echo safe_string($exam['description']); ?></p>
+                                                    <div class="d-flex justify-content-between align-items-center">
+                                                        <small class="text-muted">
+                                                            <i class="bx bx-time"></i> <?php echo (int)($exam['duration_minutes'] ?? 0); ?> minutes
+                                                        </small>
+                                                        <a href="exams.php?exam_id=<?php echo (int)($exam['id'] ?? 0); ?>" class="btn btn-sm btn-primary">
+                                                            Start Exam
+                                                        </a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    <?php endforeach; ?>
                                 </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
+        </main>
     </div>
 </div>
+
+<style>
+.card {
+    border: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 1rem;
+}
+
+.badge {
+    padding: 0.5rem 1rem;
+}
+
+.badge-excellent { background-color: #27ae60; }
+.badge-good { background-color: #2980b9; }
+.badge-average { background-color: #f39c12; }
+.badge-poor { background-color: #c0392b; }
+</style>
 
 <?php get_footer(); ?>

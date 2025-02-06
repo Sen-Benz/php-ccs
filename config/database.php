@@ -1,27 +1,31 @@
 <?php
+require_once __DIR__ . '/../vendor/autoload.php';
+
 class Database {
-    private $host = "localhost";
-    private $db_name = "ccs_screening";
-    private $username = "root";
-    private $password = "";
-    public $conn;
+    private static $instance = null;
+    private $connection;
+
+    private function __construct() {
+        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
+        $dotenv->load();
+
+        $this->connection = new PDO(
+            "mysql:host={$_ENV['DB_HOST']};dbname={$_ENV['DB_NAME']}",
+            $_ENV['DB_USER'],
+            $_ENV['DB_PASS'],
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
+        );
+    }
+
+    public static function getInstance() {
+        if (self::$instance === null) {
+            self::$instance = new self();
+        }
+        return self::$instance;
+    }
 
     public function getConnection() {
-        $this->conn = null;
-
-        try {
-            $this->conn = new PDO(
-                "mysql:host=" . $this->host . ";dbname=" . $this->db_name,
-                $this->username,
-                $this->password
-            );
-            $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
-            $this->conn->exec("set names utf8");
-        } catch(PDOException $e) {
-            echo "Connection error: " . $e->getMessage();
-        }
-
-        return $this->conn;
+        return $this->connection;
     }
 }
 ?>

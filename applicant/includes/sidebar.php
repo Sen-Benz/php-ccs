@@ -1,256 +1,290 @@
 <?php
+require_once __DIR__ . '/../../config/config.php';
 require_once __DIR__ . '/../../classes/Auth.php';
 require_once __DIR__ . '/../../config/database.php';
+require_once __DIR__ . '/../../includes/utilities.php';
 
-function get_current_page() {
-    $current_file = basename($_SERVER['PHP_SELF']);
-    return str_replace('.php', '', $current_file);
+// Check if user is logged in
+if (!isset($_SESSION['user_id'])) {
+    header('Location: ' . BASE_URL . 'login.php');
+    exit;
 }
 
-function is_active($page) {
-    return get_current_page() === $page ? 'active' : '';
+$user_id = $_SESSION['user_id'];
+$db = new Database();
+
+try {
+    // Get user data
+    $stmt = $db->query("SELECT * FROM users WHERE id = ?", [$user_id]);
+    $user = $stmt->fetch();
+    
+    // Get applicant data
+    $stmt = $db->query("SELECT status FROM applicants WHERE user_id = ?", [$user_id]);
+    $applicant = $stmt->fetch();
+    
+    if (!$applicant) {
+        $db->query("INSERT INTO applicants (user_id, status) VALUES (?, 'registered')", [$user_id]);
+        $applicant = ['status' => 'registered'];
+    }
+
+    // Get exam stats
+    $stmt = $db->query(
+        "SELECT COUNT(*) as total_exams, AVG(score) as avg_score 
+         FROM exam_results WHERE user_id = ?",
+        [$user_id]
+    );
+    $exam_stats = $stmt->fetch();
+} catch (Exception $e) {
+    error_log("Sidebar Error: " . $e->getMessage());
+    $user = ['first_name' => 'User', 'last_name' => ''];
+    $applicant = ['status' => 'registered'];
+    $exam_stats = ['total_exams' => 0, 'avg_score' => 0];
 }
 
-function is_menu_open($menu_items) {
-    $current = get_current_page();
-    return in_array($current, $menu_items) ? 'show' : '';
-}
-
-// Initialize Auth
-$auth = new Auth();
-$auth->requireRole('applicant');
-$user = $auth->getCurrentUser();
-
-// Calculate base path
-$base_path = '/php-ccs/php-ccs';
-
-// Get applicant progress
-$database = new Database();
-$conn = $database->getConnection();
-$query = "SELECT progress_status, preferred_course FROM applicants WHERE user_id = ?";
-$stmt = $conn->prepare($query);
-$stmt->execute([$user['id']]);
-$applicant_data = $stmt->fetch(PDO::FETCH_ASSOC);
-$progress_status = $applicant_data['progress_status'] ?? 'registered';
+// Get current page for active menu highlighting
+$current_page = basename($_SERVER['PHP_SELF']);
 ?>
 
-<!-- Sidebar -->
-<div class="col-md-3 col-lg-2 px-0 sidebar" id="sidebar">
-    <div class="d-flex flex-column min-vh-100">
-        <!-- Sidebar Header -->
-        <div class="d-flex align-items-center p-3">
-            <a href="<?php echo $base_path; ?>/applicant/dashboard.php" class="text-white text-decoration-none flex-grow-1">
-                <i class="bi bi-mortarboard-fill me-2 fs-4"></i>
-                <span class="fs-4">CCS Screening</span>
-            </a>
-            <button class="btn btn-link text-white d-md-none" id="sidebarCollapseBtn">
-                <i class="bi bi-x-lg"></i>
-            </button>
+<!-- Main Sidebar Container -->
+<aside class="main-sidebar">
+    <!-- Brand Logo -->
+    <div class="brand-link">
+        <span class="brand-text">CCS Screening</span>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <!-- Sidebar user panel -->
+        <div class="user-panel">
+            <div class="info">
+                <div class="user-name"><?php echo safe_string($user['first_name'] . ' ' . $user['last_name']); ?></div>
+                <div class="user-role">Applicant</div>
+            </div>
         </div>
-        <hr class="text-white mx-3 mt-0">
-        
-        <ul class="nav nav-pills flex-column mb-auto px-2">
-            <!-- Dashboard -->
-            <li class="nav-item mb-1">
-                <a href="<?php echo $base_path; ?>/applicant/dashboard.php" 
-                   class="nav-link <?php echo is_active('dashboard'); ?>">
-                    <i class="bi bi-speedometer2 me-2"></i>
-                    Dashboard
-                </a>
-            </li>
 
-            <!-- Profile -->
-            <li class="nav-item mb-1">
-                <a href="<?php echo $base_path; ?>/applicant/profile.php" 
-                   class="nav-link <?php echo is_active('profile'); ?>">
-                    <i class="bi bi-person me-2"></i>
-                    My Profile
-                </a>
-            </li>
+        <!-- Sidebar Menu -->
+        <nav class="sidebar-menu">
+            <ul class="nav-list">
+                <li class="nav-item">
+                    <a href="<?php echo BASE_URL; ?>applicant/dashboard.php" 
+                       class="nav-link <?php echo $current_page === 'dashboard.php' ? 'active' : ''; ?>">
+                        <i class="bx bxs-dashboard"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </li>
 
-            <!-- Exams -->
-            <li class="nav-item mb-1">
-                <a href="#examSubmenu" data-bs-toggle="collapse" 
-                   class="nav-link d-flex justify-content-between align-items-center">
-                    <div>
-                        <i class="bi bi-file-text me-2"></i>
-                        Exams
-                    </div>
-                    <i class="bi bi-chevron-down"></i>
-                </a>
-                <div class="collapse <?php echo is_menu_open(['exam', 'exam_results']); ?>" id="examSubmenu">
-                    <ul class="nav flex-column ms-3">
-                        <?php if (in_array($progress_status, ['registered', 'exam_scheduled', 'exam_completed'])): ?>
-                        <li class="nav-item">
-                            <a href="<?php echo $base_path; ?>/applicant/exam.php" 
-                               class="nav-link <?php echo is_active('exam'); ?>">
-                                <i class="bi bi-pencil me-2"></i>
-                                Take Exam
-                            </a>
-                        </li>
+                <li class="nav-item">
+                    <a href="<?php echo BASE_URL; ?>applicant/profile.php" 
+                       class="nav-link <?php echo $current_page === 'profile.php' ? 'active' : ''; ?>">
+                        <i class="bx bxs-user"></i>
+                        <span>My Profile</span>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a href="<?php echo BASE_URL; ?>applicant/exams.php" 
+                       class="nav-link <?php echo $current_page === 'exams.php' ? 'active' : ''; ?>">
+                        <i class="bx bxs-book"></i>
+                        <span>Exams</span>
+                        <?php if ($exam_stats['total_exams'] > 0): ?>
+                            <span class="badge bg-info rounded-pill ms-2">
+                                <?php echo $exam_stats['total_exams']; ?>
+                            </span>
                         <?php endif; ?>
-                        <li class="nav-item">
-                            <a href="<?php echo $base_path; ?>/applicant/exam_results.php" 
-                               class="nav-link <?php echo is_active('exam_results'); ?>">
-                                <i class="bi bi-card-checklist me-2"></i>
-                                My Results
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+                    </a>
+                </li>
 
-            <!-- Interview -->
-            <?php if (in_array($progress_status, ['exam_completed', 'interview_scheduled', 'interview_completed'])): ?>
-            <li class="nav-item mb-1">
-                <a href="#interviewSubmenu" data-bs-toggle="collapse" 
-                   class="nav-link d-flex justify-content-between align-items-center">
-                    <div>
-                        <i class="bi bi-camera-video me-2"></i>
-                        Interview
-                    </div>
-                    <i class="bi bi-chevron-down"></i>
-                </a>
-                <div class="collapse <?php echo is_menu_open(['interview_schedule', 'interview_details']); ?>" id="interviewSubmenu">
-                    <ul class="nav flex-column ms-3">
-                        <li class="nav-item">
-                            <a href="<?php echo $base_path; ?>/applicant/interview_schedule.php" 
-                               class="nav-link <?php echo is_active('interview_schedule'); ?>">
-                                <i class="bi bi-calendar-event me-2"></i>
-                                Schedule
-                            </a>
-                        </li>
-                        <li class="nav-item">
-                            <a href="<?php echo $base_path; ?>/applicant/interview_details.php" 
-                               class="nav-link <?php echo is_active('interview_details'); ?>">
-                                <i class="bi bi-info-circle me-2"></i>
-                                Details
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
-            <?php endif; ?>
+                <li class="nav-item">
+                    <a href="<?php echo BASE_URL; ?>applicant/results.php" 
+                       class="nav-link <?php echo $current_page === 'results.php' ? 'active' : ''; ?>">
+                        <i class="bx bxs-bar-chart-alt-2"></i>
+                        <span>My Results</span>
+                        <?php if ($exam_stats['avg_score'] > 0): ?>
+                            <span class="badge <?php echo getScoreBadgeClass($exam_stats['avg_score']); ?> rounded-pill ms-2">
+                                <?php echo number_format($exam_stats['avg_score'], 1); ?>%
+                            </span>
+                        <?php endif; ?>
+                    </a>
+                </li>
 
-            <!-- Help -->
-            <li class="nav-item mb-1">
-                <a href="<?php echo $base_path; ?>/applicant/help.php" 
-                   class="nav-link <?php echo is_active('help'); ?>">
-                    <i class="bi bi-question-circle me-2"></i>
-                    Help & Support
-                </a>
-            </li>
-        </ul>
-
-        <hr class="text-white mx-3">
-        <div class="dropdown px-3 mb-3">
-            <a href="#" class="d-flex align-items-center text-white text-decoration-none dropdown-toggle" id="dropdownUser1" data-bs-toggle="dropdown" aria-expanded="false">
-                <i class="bi bi-person-circle me-2"></i>
-                <strong><?php echo htmlspecialchars($user['first_name'] . ' ' . $user['last_name']); ?></strong>
-            </a>
-            <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUser1">
-                <li><a class="dropdown-item" href="<?php echo $base_path; ?>/applicant/profile.php">Profile</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li><a class="dropdown-item" href="<?php echo $base_path; ?>/logout.php">Sign out</a></li>
+                <li class="nav-item">
+                    <a href="<?php echo BASE_URL; ?>applicant/support.php" 
+                       class="nav-link <?php echo $current_page === 'support.php' ? 'active' : ''; ?>">
+                        <i class="bx bxs-help-circle"></i>
+                        <span>Help & Support</span>
+                    </a>
+                </li>
             </ul>
+        </nav>
+
+        <!-- Application Status -->
+        <div class="application-status">
+            <div class="status-card">
+                <h6>Application Status</h6>
+                <?php
+                $status = $applicant['status'];
+                $status_badges = [
+                    'registered' => 'status-badge-secondary',
+                    'screening' => 'status-badge-primary',
+                    'interview_scheduled' => 'status-badge-warning',
+                    'interview_completed' => 'status-badge-info',
+                    'accepted' => 'status-badge-success',
+                    'rejected' => 'status-badge-danger'
+                ];
+                $badge_class = $status_badges[$status] ?? 'status-badge-secondary';
+                ?>
+                <span class="status-badge <?php echo $badge_class; ?>">
+                    <?php echo safe_ucwords(str_replace('_', ' ', $status)); ?>
+                </span>
+            </div>
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="sidebar-footer">
+            <a href="<?php echo BASE_URL; ?>logout.php" class="btn-logout">
+                <i class="bx bx-log-out"></i>
+                <span>Sign Out</span>
+            </a>
         </div>
     </div>
-</div>
-
-<!-- Mobile Toggle Button -->
-<button class="btn btn-primary position-fixed d-md-none" 
-        id="sidebarToggleBtn"
-        style="top: 10px; left: 10px; z-index: 1031;">
-    <i class="bi bi-list"></i>
-</button>
+</aside>
 
 <style>
-.sidebar {
-    background: #0d6efd;
-    transition: margin-left 0.3s ease-in-out;
+.main-sidebar {
+    width: 250px;
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    background: #2c3e50;
+    color: #ecf0f1;
+    z-index: 1000;
+    transition: all 0.3s ease;
 }
 
-@media (max-width: 767.98px) {
-    .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        height: 100vh;
-        z-index: 1030;
-        margin-left: -100%;
-    }
-    
-    .sidebar.show {
-        margin-left: 0;
-    }
+.brand-link {
+    padding: 20px;
+    text-align: center;
+    background: #34495e;
+    border-bottom: 1px solid #46627f;
 }
 
-.sidebar .nav-link {
-    color: rgba(255, 255, 255, 0.85);
-    font-size: 0.95rem;
-    padding: 0.5rem 1rem;
-    border-radius: 0.25rem;
-}
-
-.sidebar .nav-link:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.1);
-}
-
-.sidebar .nav-link.active {
-    color: #0d6efd;
-    background: #fff;
-}
-
-.sidebar .collapse .nav-link {
-    padding-left: 1rem;
-    font-size: 0.9rem;
-}
-
-.sidebar hr {
-    margin: 1rem 0;
-    opacity: 0.25;
-}
-
-.dropdown-toggle { outline: 0; }
-
-.btn-toggle {
-    padding: .25rem .5rem;
+.brand-text {
+    font-size: 1.25rem;
     font-weight: 600;
-    background-color: transparent;
-    border: 0;
+    color: #fff;
 }
 
-.btn-toggle:hover,
-.btn-toggle:focus {
-    background-color: rgba(255, 255, 255, .1);
+.user-panel {
+    padding: 20px;
+    border-bottom: 1px solid #46627f;
 }
+
+.user-name {
+    font-weight: 600;
+    margin-bottom: 5px;
+}
+
+.user-role {
+    font-size: 0.875rem;
+    color: #bdc3c7;
+}
+
+.nav-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: #ecf0f1;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+    background: #34495e;
+    color: #fff;
+}
+
+.nav-link.active {
+    background: #3498db;
+    color: #fff;
+}
+
+.nav-link i {
+    margin-right: 10px;
+    font-size: 1.25rem;
+}
+
+.application-status {
+    padding: 20px;
+    margin-top: auto;
+}
+
+.status-card {
+    background: #34495e;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.status-card h6 {
+    margin-bottom: 10px;
+    color: #bdc3c7;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.875rem;
+}
+
+.status-badge-secondary { background: #95a5a6; }
+.status-badge-primary { background: #3498db; }
+.status-badge-warning { background: #f1c40f; color: #2c3e50; }
+.status-badge-info { background: #2980b9; }
+.status-badge-success { background: #27ae60; }
+.status-badge-danger { background: #c0392b; }
+
+.sidebar-footer {
+    padding: 20px;
+    border-top: 1px solid #46627f;
+}
+
+.btn-logout {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    padding: 10px;
+    background: #c0392b;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.btn-logout:hover {
+    background: #e74c3c;
+    color: #fff;
+}
+
+.btn-logout i {
+    margin-right: 8px;
+}
+
+.badge {
+    padding: 0.35em 0.65em;
+    font-size: 0.75em;
+}
+
+.badge-excellent { background-color: #27ae60 !important; }
+.badge-good { background-color: #2980b9 !important; }
+.badge-average { background-color: #f39c12 !important; }
+.badge-poor { background-color: #c0392b !important; }
 </style>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.getElementById('sidebarToggleBtn');
-    const collapseBtn = document.getElementById('sidebarCollapseBtn');
-    
-    // Toggle sidebar on mobile
-    toggleBtn.addEventListener('click', function() {
-        sidebar.classList.add('show');
-    });
-    
-    // Close sidebar on mobile
-    collapseBtn.addEventListener('click', function() {
-        sidebar.classList.remove('show');
-    });
-    
-    // Close sidebar when clicking outside on mobile
-    document.addEventListener('click', function(event) {
-        if (window.innerWidth < 768) {
-            const isClickInside = sidebar.contains(event.target) || toggleBtn.contains(event.target);
-            if (!isClickInside && sidebar.classList.contains('show')) {
-                sidebar.classList.remove('show');
-            }
-        }
-    });
-});
-</script>

@@ -24,14 +24,13 @@ try {
                 e.type as exam_type,
                 e.part as exam_part,
                 e.passing_score,
-                a.*,
-                CONCAT(a.first_name, ' ', a.last_name) as applicant_name,
+                u.*,
+                CONCAT(u.first_name, ' ', u.last_name) as applicant_name,
                 u.email,
-                a.contact_number
+                u.contact_number
               FROM exam_results er
               JOIN exams e ON er.exam_id = e.id
-              JOIN applicants a ON er.applicant_id = a.id
-              JOIN users u ON a.user_id = u.id
+              JOIN users u ON er.user_id = u.id
               WHERE er.id = ?";
     
     $stmt = $conn->prepare($query);
@@ -51,7 +50,7 @@ try {
               ORDER BY q.id ASC";
     
     $stmt = $conn->prepare($query);
-    $stmt->execute([$result['applicant_id'], $result['exam_id'], $result['exam_id']]);
+    $stmt->execute([$result['user_id'], $result['exam_id'], $result['exam_id']]);
     $questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     // Calculate statistics

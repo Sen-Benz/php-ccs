@@ -62,26 +62,30 @@ try {
     $main_query = "SELECT 
                 a.*,
                 u.email,
+                u.status as user_status,
                 COALESCE(e1.score, 0) as part1_score,
                 COALESCE(e2.score, 0) as part2_score,
                 COALESCE(i.total_score, 0) as interview_score,
-                i.interview_status
+                i.interview_status,
+                e1.exam_date as part1_date,
+                e2.exam_date as part2_date,
+                i.schedule_date as interview_date
               FROM applicants a
               JOIN users u ON a.user_id = u.id
               LEFT JOIN (
-                SELECT er.applicant_id, er.score
+                SELECT er.user_id, er.score, er.created_at as exam_date
                 FROM exam_results er
                 JOIN exams e ON er.exam_id = e.id
                 WHERE e.part = '1'
-              ) e1 ON a.id = e1.applicant_id
+              ) e1 ON a.user_id = e1.user_id
               LEFT JOIN (
-                SELECT er.applicant_id, er.score
+                SELECT er.user_id, er.score, er.created_at as exam_date
                 FROM exam_results er
                 JOIN exams e ON er.exam_id = e.id
                 WHERE e.part = '2'
-              ) e2 ON a.id = e2.applicant_id
+              ) e2 ON a.user_id = e2.user_id
               LEFT JOIN (
-                SELECT applicant_id, total_score, interview_status
+                SELECT applicant_id, total_score, interview_status, schedule_date
                 FROM interview_schedules
                 WHERE status = 'completed'
               ) i ON a.id = i.applicant_id
@@ -97,170 +101,265 @@ try {
     $stmt->execute($params);
     $applicants = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Get available courses for filter
+    $courses_query = "SELECT DISTINCT preferred_course FROM applicants ORDER BY preferred_course";
+    $stmt = $conn->prepare($courses_query);
+    $stmt->execute();
+    $available_courses = $stmt->fetchAll(PDO::FETCH_COLUMN);
+
 } catch (Exception $e) {
     $error = $e->getMessage();
 }
 
-admin_header('List All Applicants');
+$page_title = 'Applicant Status Overview';
+admin_header($page_title);
 ?>
 
-<div class="container-fluid px-4">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-        <h1 class="h2">List All Applicants</h1>
-    </div>
+<div class="wrapper">
+    <!-- Sidebar -->
+    <?php include '../includes/sidebar.php'; ?>
 
-    <?php if ($error): ?>
-        <div class="alert alert-danger" role="alert">
-            <?php echo htmlspecialchars($error); ?>
-        </div>
-    <?php endif; ?>
-
-    <!-- Filters -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-3">
-                <div class="col-md-3">
-                    <label for="status" class="form-label">Status</label>
-                    <select class="form-select" id="status" name="status">
-                        <option value="all" <?php echo $status_filter === 'all' ? 'selected' : ''; ?>>All Status</option>
-                        <option value="registered" <?php echo $status_filter === 'registered' ? 'selected' : ''; ?>>Registered</option>
-                        <option value="part1_pending" <?php echo $status_filter === 'part1_pending' ? 'selected' : ''; ?>>Part 1 Pending</option>
-                        <option value="part1_completed" <?php echo $status_filter === 'part1_completed' ? 'selected' : ''; ?>>Part 1 Completed</option>
-                        <option value="part2_pending" <?php echo $status_filter === 'part2_pending' ? 'selected' : ''; ?>>Part 2 Pending</option>
-                        <option value="part2_completed" <?php echo $status_filter === 'part2_completed' ? 'selected' : ''; ?>>Part 2 Completed</option>
-                        <option value="interview_pending" <?php echo $status_filter === 'interview_pending' ? 'selected' : ''; ?>>Interview Pending</option>
-                        <option value="interview_completed" <?php echo $status_filter === 'interview_completed' ? 'selected' : ''; ?>>Interview Completed</option>
-                        <option value="passed" <?php echo $status_filter === 'passed' ? 'selected' : ''; ?>>Passed</option>
-                        <option value="failed" <?php echo $status_filter === 'failed' ? 'selected' : ''; ?>>Failed</option>
-                    </select>
+    <!-- Page Content -->
+    <div class="page-content-wrapper">
+        <div class="container-fluid">
+            <!-- Page Header -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                        <h1 class="h2"><?php echo $page_title; ?></h1>
+                        <div class="btn-toolbar mb-2 mb-md-0">
+                            <a href="manage_applicants.php" class="btn btn-sm btn-outline-primary me-2">
+                                <i class='bx bx-user-plus'></i> Manage Applicants
+                            </a>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="window.print()">
+                                <i class='bx bx-printer'></i> Print Report
+                            </button>
+                        </div>
+                    </div>
                 </div>
-
-                <div class="col-md-3">
-                    <label for="course" class="form-label">Course</label>
-                    <select class="form-select" id="course" name="course">
-                        <option value="all" <?php echo $course_filter === 'all' ? 'selected' : ''; ?>>All Courses</option>
-                        <option value="BSCS" <?php echo $course_filter === 'BSCS' ? 'selected' : ''; ?>>BSCS</option>
-                        <option value="BSIT" <?php echo $course_filter === 'BSIT' ? 'selected' : ''; ?>>BSIT</option>
-                    </select>
-                </div>
-
-                <div class="col-md-4">
-                    <label for="search" class="form-label">Search</label>
-                    <input type="text" class="form-control" id="search" name="search" value="<?php echo htmlspecialchars($search); ?>" placeholder="Search by name or email">
-                </div>
-
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="bi bi-search"></i> Filter
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Applicants Table -->
-    <div class="card">
-        <div class="card-body">
-            <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Name</th>
-                            <th>Email</th>
-                            <th>Course</th>
-                            <th>Status</th>
-                            <th>Part 1 Score</th>
-                            <th>Part 2 Score</th>
-                            <th>Interview Score</th>
-                            <th>Interview Result</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (!empty($applicants)): ?>
-                            <?php foreach ($applicants as $applicant): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars($applicant['id']); ?></td>
-                                    <td>
-                                        <?php 
-                                        echo htmlspecialchars($applicant['first_name'] . ' ' . 
-                                             ($applicant['middle_name'] ? $applicant['middle_name'] . ' ' : '') . 
-                                             $applicant['last_name']); 
-                                        ?>
-                                    </td>
-                                    <td><?php echo htmlspecialchars($applicant['email']); ?></td>
-                                    <td><?php echo htmlspecialchars($applicant['preferred_course']); ?></td>
-                                    <td>
-                                        <span class="badge bg-<?php 
-                                            echo match($applicant['progress_status']) {
-                                                'registered' => 'secondary',
-                                                'part1_pending', 'part2_pending', 'interview_pending' => 'warning',
-                                                'part1_completed', 'part2_completed', 'interview_completed' => 'info',
-                                                'passed' => 'success',
-                                                'failed' => 'danger',
-                                                default => 'secondary'
-                                            };
-                                        ?>">
-                                            <?php echo ucwords(str_replace('_', ' ', $applicant['progress_status'])); ?>
-                                        </span>
-                                    </td>
-                                    <td><?php echo $applicant['part1_score']; ?></td>
-                                    <td><?php echo $applicant['part2_score']; ?></td>
-                                    <td><?php echo $applicant['interview_score']; ?></td>
-                                    <td>
-                                        <?php if ($applicant['interview_status']): ?>
-                                            <span class="badge bg-<?php 
-                                                echo match($applicant['interview_status']) {
-                                                    'passed' => 'success',
-                                                    'failed' => 'danger',
-                                                    default => 'secondary'
-                                                };
-                                            ?>">
-                                                <?php echo ucfirst($applicant['interview_status']); ?>
-                                            </span>
-                                        <?php else: ?>
-                                            <span class="badge bg-secondary">Not Interviewed</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td>
-                                        <a href="view_applicant.php?id=<?php echo $applicant['id']; ?>" class="btn btn-sm btn-primary">
-                                            <i class="bi bi-eye"></i> View
-                                        </a>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="10" class="text-center">No applicants found</td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
             </div>
 
-            <!-- Pagination -->
-            <?php if ($total_pages > 1): ?>
-                <nav aria-label="Page navigation" class="mt-4">
-                    <ul class="pagination justify-content-center">
-                        <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
-                            <a class="page-link" href="?page=<?php echo $page - 1; ?>&status=<?php echo urlencode($status_filter); ?>&course=<?php echo urlencode($course_filter); ?>&search=<?php echo urlencode($search); ?>">Previous</a>
-                        </li>
-                        <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-                            <li class="page-item <?php echo $page == $i ? 'active' : ''; ?>">
-                                <a class="page-link" href="?page=<?php echo $i; ?>&status=<?php echo urlencode($status_filter); ?>&course=<?php echo urlencode($course_filter); ?>&search=<?php echo urlencode($search); ?>"><?php echo $i; ?></a>
-                            </li>
-                        <?php endfor; ?>
-                        <li class="page-item <?php echo $page >= $total_pages ? 'disabled' : ''; ?>">
-                            <a class="page-link" href="?page=<?php echo $page + 1; ?>&status=<?php echo urlencode($status_filter); ?>&course=<?php echo urlencode($course_filter); ?>&search=<?php echo urlencode($search); ?>">Next</a>
-                        </li>
-                    </ul>
-                </nav>
+            <!-- Filters -->
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <form method="GET" class="row g-3">
+                                <div class="col-md-3">
+                                    <label for="status" class="form-label">Progress Status</label>
+                                    <select class="form-select" id="status" name="status">
+                                        <option value="all" <?php echo $status_filter === 'all' ? 'selected' : ''; ?>>All Status</option>
+                                        <option value="registered" <?php echo $status_filter === 'registered' ? 'selected' : ''; ?>>Registered</option>
+                                        <option value="exam_scheduled" <?php echo $status_filter === 'exam_scheduled' ? 'selected' : ''; ?>>Exam Scheduled</option>
+                                        <option value="exam_completed" <?php echo $status_filter === 'exam_completed' ? 'selected' : ''; ?>>Exam Completed</option>
+                                        <option value="interview_scheduled" <?php echo $status_filter === 'interview_scheduled' ? 'selected' : ''; ?>>Interview Scheduled</option>
+                                        <option value="interview_completed" <?php echo $status_filter === 'interview_completed' ? 'selected' : ''; ?>>Interview Completed</option>
+                                        <option value="accepted" <?php echo $status_filter === 'accepted' ? 'selected' : ''; ?>>Accepted</option>
+                                        <option value="rejected" <?php echo $status_filter === 'rejected' ? 'selected' : ''; ?>>Rejected</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <label for="course" class="form-label">Course</label>
+                                    <select class="form-select" id="course" name="course">
+                                        <option value="all" <?php echo $course_filter === 'all' ? 'selected' : ''; ?>>All Courses</option>
+                                        <?php foreach ($available_courses as $course): ?>
+                                        <option value="<?php echo htmlspecialchars($course); ?>" 
+                                                <?php echo $course_filter === $course ? 'selected' : ''; ?>>
+                                            <?php echo htmlspecialchars($course); ?>
+                                        </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label for="search" class="form-label">Search</label>
+                                    <input type="text" class="form-control" id="search" name="search" 
+                                           value="<?php echo htmlspecialchars($search); ?>" 
+                                           placeholder="Search by name or email">
+                                </div>
+                                <div class="col-md-2 d-flex align-items-end">
+                                    <button type="submit" class="btn btn-primary w-100">
+                                        <i class='bx bx-filter-alt'></i> Apply Filters
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alert Messages -->
+            <?php if (!empty($error)): ?>
+            <div class="row">
+                <div class="col-12">
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <?php echo $error; ?>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                </div>
+            </div>
             <?php endif; ?>
+
+            <!-- Main Content -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                            <th>Course</th>
+                                            <th>Progress Status</th>
+                                            <th>Exam Part 1</th>
+                                            <th>Exam Part 2</th>
+                                            <th>Interview</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php if (empty($applicants)): ?>
+                                        <tr>
+                                            <td colspan="8" class="text-center">No applicants found</td>
+                                        </tr>
+                                        <?php else: ?>
+                                            <?php foreach ($applicants as $applicant): ?>
+                                            <tr>
+                                                <td><?php echo $applicant['id']; ?></td>
+                                                <td>
+                                                    <div>
+                                                        <?php echo htmlspecialchars($applicant['first_name'] . ' ' . $applicant['last_name']); ?>
+                                                        <?php if ($applicant['user_status'] === 'pending'): ?>
+                                                            <span class="badge bg-warning">Pending</span>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                    <small class="text-muted"><?php echo htmlspecialchars($applicant['email']); ?></small>
+                                                </td>
+                                                <td><?php echo htmlspecialchars($applicant['preferred_course']); ?></td>
+                                                <td>
+                                                    <?php
+                                                    $progress_class = match($applicant['progress_status']) {
+                                                        'registered' => 'info',
+                                                        'exam_scheduled' => 'primary',
+                                                        'exam_completed' => 'success',
+                                                        'interview_scheduled' => 'warning',
+                                                        'interview_completed' => 'success',
+                                                        'accepted' => 'success',
+                                                        'rejected' => 'danger',
+                                                        default => 'secondary'
+                                                    };
+                                                    ?>
+                                                    <span class="badge bg-<?php echo $progress_class; ?>">
+                                                        <?php echo ucwords(str_replace('_', ' ', $applicant['progress_status'])); ?>
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <?php if ($applicant['part1_score'] > 0): ?>
+                                                        <span class="badge bg-success"><?php echo $applicant['part1_score']; ?>%</span>
+                                                        <br>
+                                                        <small class="text-muted">
+                                                            <?php echo date('M d, Y', strtotime($applicant['part1_date'])); ?>
+                                                        </small>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-secondary">Not taken</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <?php if ($applicant['part2_score'] > 0): ?>
+                                                        <span class="badge bg-success"><?php echo $applicant['part2_score']; ?>%</span>
+                                                        <br>
+                                                        <small class="text-muted">
+                                                            <?php echo date('M d, Y', strtotime($applicant['part2_date'])); ?>
+                                                        </small>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-secondary">Not taken</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <?php if ($applicant['interview_score'] > 0): ?>
+                                                        <span class="badge bg-success"><?php echo $applicant['interview_score']; ?>%</span>
+                                                        <br>
+                                                        <small class="text-muted">
+                                                            <?php echo date('M d, Y', strtotime($applicant['interview_date'])); ?>
+                                                        </small>
+                                                    <?php else: ?>
+                                                        <span class="badge bg-secondary">Not scheduled</span>
+                                                    <?php endif; ?>
+                                                </td>
+                                                <td>
+                                                    <div class="btn-group">
+                                                        <a href="view_applicant.php?id=<?php echo $applicant['id']; ?>" 
+                                                           class="btn btn-sm btn-info" title="View Details">
+                                                            <i class='bx bx-show'></i>
+                                                        </a>
+                                                        <a href="schedule_exam.php?id=<?php echo $applicant['id']; ?>" 
+                                                           class="btn btn-sm btn-primary" title="Schedule Exam">
+                                                            <i class='bx bx-calendar-plus'></i>
+                                                        </a>
+                                                        <a href="schedule_interview.php?id=<?php echo $applicant['id']; ?>" 
+                                                           class="btn btn-sm btn-warning" title="Schedule Interview">
+                                                            <i class='bx bx-calendar-check'></i>
+                                                        </a>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                            <?php endforeach; ?>
+                                        <?php endif; ?>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- Pagination -->
+                            <?php if ($total_pages > 1): ?>
+                            <nav aria-label="Page navigation" class="mt-4">
+                                <ul class="pagination justify-content-center">
+                                    <li class="page-item <?php echo $page <= 1 ? 'disabled' : ''; ?>">
+                                        <a class="page-link" href="?page=<?php echo $page - 1; ?>&status=<?php echo urlencode($status_filter); ?>&course=<?php echo urlencode($course_filter); ?>&search=<?php echo urlencode($search); ?>">
+                                            <i class='bx bx-chevron-left'></i> Previous
+                                        </a>
+                                    </li>
+                                    <?php for ($i = 1; $i <= $total_pages; $i++): ?>
+                                    <li class="page-item <?php echo $page == $i ? 'active' : ''; ?>">
+                                        <a class="page-link" href="?page=<?php echo $i; ?>&status=<?php echo urlencode($status_filter); ?>&course=<?php echo urlencode($course_filter); ?>&search=<?php echo urlencode($search); ?>">
+                                            <?php echo $i; ?>
+                                        </a>
+                                    </li>
+                                    <?php endfor; ?>
+                                    <li class="page-item <?php echo $page >= $total_pages ? 'disabled' : ''; ?>">
+                                        <a class="page-link" href="?page=<?php echo $page + 1; ?>&status=<?php echo urlencode($status_filter); ?>&course=<?php echo urlencode($course_filter); ?>&search=<?php echo urlencode($search); ?>">
+                                            Next <i class='bx bx-chevron-right'></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
 
-<?php
-admin_footer();
-?>
+<!-- Add custom styles -->
+<style>
+@media print {
+    .btn-toolbar,
+    .sidebar,
+    .pagination,
+    .filters {
+        display: none !important;
+    }
+    .page-content-wrapper {
+        margin-left: 0 !important;
+        padding: 0 !important;
+    }
+    .card {
+        border: none !important;
+        box-shadow: none !important;
+    }
+}
+</style>
+
+<?php admin_footer(); ?>

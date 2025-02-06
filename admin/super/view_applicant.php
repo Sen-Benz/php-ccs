@@ -40,21 +40,22 @@ try {
 
     // Get exam results
     $query = "SELECT 
+                er.*,
                 e.title as exam_title,
-                e.part,
-                er.score,
-                er.completed_at,
+                e.type as exam_type,
+                e.part as exam_part,
                 e.passing_score,
+                er.created_at,
                 (SELECT COUNT(*) FROM questions q WHERE q.exam_id = e.id) as total_questions,
                 (SELECT COUNT(*) FROM applicant_answers aa 
                  WHERE aa.exam_id = e.id AND aa.applicant_id = ? AND aa.is_correct = 1) as correct_answers
               FROM exam_results er
               JOIN exams e ON er.exam_id = e.id
               WHERE er.applicant_id = ?
-              ORDER BY e.part ASC, er.completed_at DESC";
+              ORDER BY e.part ASC, er.created_at DESC";
     
     $stmt = $conn->prepare($query);
-    $stmt->execute([$applicant_id, $applicant_id]);
+    $stmt->execute([$applicant['id'], $applicant['id']]);
     $exam_results = $stmt->fetchAll();
 
     // Get interview history
@@ -204,7 +205,7 @@ admin_header('View Applicant');
                                         <?php foreach ($exam_results as $result): ?>
                                             <tr>
                                                 <td><?php echo htmlspecialchars($result['exam_title']); ?></td>
-                                                <td><?php echo $result['part']; ?></td>
+                                                <td><?php echo $result['exam_part']; ?></td>
                                                 <td>
                                                     <?php 
                                                         echo $result['correct_answers'] . '/' . $result['total_questions'];
@@ -221,7 +222,7 @@ admin_header('View Applicant');
                                                     </span>
                                                 </td>
                                                 <td>
-                                                    <?php echo date('M d, Y h:i A', strtotime($result['completed_at'])); ?>
+                                                    <?php echo date('M d, Y h:i A', strtotime($result['created_at'])); ?>
                                                 </td>
                                             </tr>
                                         <?php endforeach; ?>

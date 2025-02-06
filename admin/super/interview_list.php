@@ -162,164 +162,200 @@ try {
     $error = $e->getMessage();
 }
 
-admin_header('Interview Schedule');
+$page_title = 'Interview Schedule';
+admin_header($page_title);
 ?>
 
-<div class="container-fluid px-4">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-        <h1 class="h2">Interview Schedule</h1>
-        <div class="btn-toolbar mb-2 mb-md-0">
-            <div class="btn-group me-2">
-                <a href="interview_results.php" class="btn btn-sm btn-outline-primary">
-                    <i class="bi bi-clipboard-check"></i> View Results
-                </a>
-                <a href="schedule_interview.php" class="btn btn-sm btn-primary">
-                    <i class="bi bi-plus-circle"></i> Schedule New Interview
-                </a>
+<div class="wrapper">
+    <!-- Sidebar -->
+    <?php include '../includes/sidebar.php'; ?>
+
+    <!-- Page Content -->
+    <div class="page-content-wrapper">
+        <div class="container-fluid">
+            <!-- Page Header -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                        <div>
+                            <h1 class="h2"><?php echo $page_title; ?></h1>
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb">
+                                    <li class="breadcrumb-item"><a href="dashboard.php">Dashboard</a></li>
+                                    <li class="breadcrumb-item active">Interview Schedule</li>
+                                </ol>
+                            </nav>
+                        </div>
+                        <div class="btn-toolbar mb-2 mb-md-0">
+                            <a href="interview_results.php" class="btn btn-sm btn-outline-primary me-2">
+                                <i class='bx bx-clipboard'></i> View Results
+                            </a>
+                            <a href="schedule_interview.php" class="btn btn-sm btn-primary">
+                                <i class='bx bx-plus'></i> Schedule New Interview
+                            </a>
+                        </div>
+                    </div>
+                </div>
             </div>
-        </div>
-    </div>
 
-    <?php if ($error): ?>
-        <div class="alert alert-danger" role="alert">
-            <?php echo htmlspecialchars($error); ?>
-        </div>
-    <?php endif; ?>
+            <?php if ($error): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <?php echo htmlspecialchars($error); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
 
-    <?php if ($success): ?>
-        <div class="alert alert-success" role="alert">
-            <?php echo htmlspecialchars($success); ?>
-        </div>
-    <?php endif; ?>
+            <?php if ($success): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <?php echo htmlspecialchars($success); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
 
-    <!-- Filters -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-3">
-                <div class="col-md-4">
-                    <label for="search" class="form-label">Search</label>
-                    <input type="text" class="form-control" id="search" name="search" 
-                           value="<?php echo htmlspecialchars($search); ?>" 
-                           placeholder="Search by name...">
+            <!-- Filters -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <form method="get" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="search" class="form-label">
+                                <i class='bx bx-search'></i> Search
+                            </label>
+                            <input type="text" class="form-control" id="search" name="search" 
+                                   value="<?php echo htmlspecialchars($search); ?>"
+                                   placeholder="Search by applicant or interviewer name">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="status" class="form-label">
+                                <i class='bx bx-filter'></i> Status
+                            </label>
+                            <select class="form-select" id="status" name="status">
+                                <option value="all">All Status</option>
+                                <option value="pending" <?php echo $status === 'pending' ? 'selected' : ''; ?>>Pending</option>
+                                <option value="completed" <?php echo $status === 'completed' ? 'selected' : ''; ?>>Completed</option>
+                                <option value="cancelled" <?php echo $status === 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="date" class="form-label">
+                                <i class='bx bx-calendar'></i> Date
+                            </label>
+                            <input type="date" class="form-control" id="date" name="date" 
+                                   value="<?php echo htmlspecialchars($date); ?>">
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class='bx bx-filter-alt'></i> Filter
+                            </button>
+                        </div>
+                    </form>
                 </div>
-                <div class="col-md-3">
-                    <label for="status" class="form-label">Status</label>
-                    <select class="form-select" id="status" name="status">
-                        <option value="all" <?php echo $status === 'all' ? 'selected' : ''; ?>>All Status</option>
-                        <option value="scheduled" <?php echo $status === 'scheduled' ? 'selected' : ''; ?>>Scheduled</option>
-                        <option value="completed" <?php echo $status === 'completed' ? 'selected' : ''; ?>>Completed</option>
-                        <option value="cancelled" <?php echo $status === 'cancelled' ? 'selected' : ''; ?>>Cancelled</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="date" class="form-label">Date</label>
-                    <input type="date" class="form-control" id="date" name="date" 
-                           value="<?php echo $date; ?>">
-                </div>
-                <div class="col-md-2 d-flex align-items-end">
-                    <button type="submit" class="btn btn-primary w-100">Filter</button>
-                </div>
-            </form>
-        </div>
-    </div>
+            </div>
 
-    <!-- Interview List -->
-    <div class="card">
-        <div class="card-body">
-            <?php if (empty($interviews)): ?>
-                <p class="text-center text-muted my-5">No interviews found.</p>
-            <?php else: ?>
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Date & Time</th>
-                                <th>Applicant</th>
-                                <th>Interviewer</th>
-                                <th>Status</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($interviews as $interview): ?>
-                                <tr>
-                                    <td>
-                                        <?php echo date('F d, Y', strtotime($interview['schedule_date'])); ?><br>
-                                        <small class="text-muted">
-                                            <?php echo date('h:i A', strtotime($interview['start_time'])) . ' - ' . 
-                                                 date('h:i A', strtotime($interview['end_time'])); ?>
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <strong><?php echo htmlspecialchars($interview['applicant_name']); ?></strong><br>
-                                        <small class="text-muted">
-                                            <?php echo htmlspecialchars($interview['applicant_email']); ?><br>
-                                            <?php echo htmlspecialchars($interview['applicant_contact']); ?>
-                                        </small>
-                                    </td>
-                                    <td>
-                                        <?php echo htmlspecialchars($interview['interviewer_name']); ?><br>
-                                        <span class="badge bg-secondary">
-                                            <?php echo strtoupper($interview['interviewer_role']); ?>
-                                        </span>
-                                    </td>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <span class="badge <?php 
-                                                echo match($interview['status']) {
-                                                    'scheduled' => 'bg-primary',
+            <!-- Interview List -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class='bx bx-list-ul'></i> Interview Schedule List
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <?php if (empty($interviews)): ?>
+                        <div class="text-center py-5">
+                            <i class='bx bx-calendar-x fs-1 text-muted'></i>
+                            <p class="text-muted mt-2">No interviews found.</p>
+                        </div>
+                    <?php else: ?>
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle">
+                                <thead>
+                                    <tr>
+                                        <th>Date & Time</th>
+                                        <th>Applicant</th>
+                                        <th>Interviewer</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($interviews as $interview): ?>
+                                        <tr>
+                                            <td>
+                                                <div class="fw-bold"><?php echo date('F d, Y', strtotime($interview['schedule_date'])); ?></div>
+                                                <small class="text-muted">
+                                                    <?php echo date('h:i A', strtotime($interview['start_time'])) . ' - ' . 
+                                                              date('h:i A', strtotime($interview['end_time'])); ?>
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold"><?php echo htmlspecialchars($interview['applicant_name']); ?></div>
+                                                <small class="text-muted">
+                                                    <i class='bx bx-phone'></i> <?php echo htmlspecialchars($interview['applicant_contact']); ?><br>
+                                                    <i class='bx bx-envelope'></i> <?php echo htmlspecialchars($interview['applicant_email']); ?>
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <div class="fw-bold"><?php echo htmlspecialchars($interview['interviewer_name']); ?></div>
+                                                <small class="text-muted text-capitalize">
+                                                    <i class='bx bx-user'></i> <?php echo str_replace('_', ' ', $interview['interviewer_role']); ?>
+                                                </small>
+                                            </td>
+                                            <td>
+                                                <?php
+                                                $status_class = match($interview['status']) {
+                                                    'pending' => 'bg-warning',
                                                     'completed' => 'bg-success',
                                                     'cancelled' => 'bg-danger',
                                                     default => 'bg-secondary'
                                                 };
-                                            ?>">
-                                                <?php echo ucfirst($interview['status']); ?>
-                                            </span>
-                                            <?php if ($interview['status'] === 'scheduled'): ?>
-                                                <a href="<?php echo htmlspecialchars($interview['meeting_link']); ?>" 
-                                                   target="_blank" class="btn btn-sm btn-primary ms-2">
-                                                    <i class="bi bi-camera-video"></i> Join
-                                                </a>
-                                            <?php endif; ?>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <button type="button" 
-                                                    class="btn btn-sm btn-outline-secondary dropdown-toggle" 
-                                                    data-bs-toggle="dropdown">
-                                                Actions
-                                            </button>
-                                            <ul class="dropdown-menu">
-                                                <?php if ($interview['status'] === 'scheduled'): ?>
-                                                    <li>
-                                                        <a href="#" class="dropdown-item" 
-                                                           onclick="updateStatus(<?php echo $interview['id']; ?>, 'completed')">
-                                                            <i class="bi bi-check-circle"></i> Mark as Completed
-                                                        </a>
-                                                    </li>
-                                                    <li>
-                                                        <a href="#" class="dropdown-item text-danger"
-                                                           onclick="cancelInterview(<?php echo $interview['id']; ?>)">
-                                                            <i class="bi bi-x-circle"></i> Cancel Interview
-                                                        </a>
-                                                    </li>
-                                                <?php endif; ?>
-                                                <li>
-                                                    <a href="view_interview.php?id=<?php echo $interview['id']; ?>" 
-                                                       class="dropdown-item">
-                                                        <i class="bi bi-eye"></i> View Details
-                                                    </a>
-                                                </li>
-                                            </ul>
-                                        </div>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
+                                                ?>
+                                                <span class="badge <?php echo $status_class; ?>">
+                                                    <?php echo ucfirst($interview['status']); ?>
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <div class="btn-group">
+                                                    <button type="button" 
+                                                            class="btn btn-sm btn-outline-primary dropdown-toggle" 
+                                                            data-bs-toggle="dropdown">
+                                                        <i class='bx bx-dots-vertical-rounded'></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu">
+                                                        <li>
+                                                            <a class="dropdown-item" href="view_interview.php?id=<?php echo $interview['id']; ?>">
+                                                                <i class='bx bx-show'></i> View Details
+                                                            </a>
+                                                        </li>
+                                                        <?php if ($interview['status'] === 'pending'): ?>
+                                                            <li>
+                                                                <form method="post" class="d-inline" 
+                                                                      onsubmit="return confirm('Are you sure you want to mark this interview as completed?');">
+                                                                    <input type="hidden" name="interview_id" value="<?php echo $interview['id']; ?>">
+                                                                    <input type="hidden" name="status" value="completed">
+                                                                    <button type="submit" class="dropdown-item">
+                                                                        <i class='bx bx-check'></i> Mark as Completed
+                                                                    </button>
+                                                                </form>
+                                                            </li>
+                                                            <li>
+                                                                <button type="button" class="dropdown-item text-danger"
+                                                                        data-bs-toggle="modal" 
+                                                                        data-bs-target="#cancelModal"
+                                                                        data-interview-id="<?php echo $interview['id']; ?>">
+                                                                    <i class='bx bx-x'></i> Cancel Interview
+                                                                </button>
+                                                            </li>
+                                                        <?php endif; ?>
+                                                    </ul>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php endif; ?>
                 </div>
-            <?php endif; ?>
+            </div>
         </div>
     </div>
 </div>
@@ -330,57 +366,49 @@ admin_header('Interview Schedule');
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">Cancel Interview</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <form id="cancelForm" method="post">
-                    <input type="hidden" name="interview_id" id="cancel_interview_id">
+            <form method="post">
+                <div class="modal-body">
+                    <input type="hidden" name="interview_id" id="cancelInterviewId">
                     <input type="hidden" name="status" value="cancelled">
                     
                     <div class="mb-3">
                         <label for="cancel_reason" class="form-label">Reason for Cancellation</label>
-                        <textarea class="form-control" id="cancel_reason" name="cancel_reason" 
-                                  rows="3" required></textarea>
+                        <textarea class="form-control" id="cancel_reason" name="cancel_reason" rows="3" required></textarea>
                     </div>
-
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-danger">Cancel Interview</button>
+                    
+                    <div class="alert alert-warning">
+                        <i class='bx bx-info-circle'></i> 
+                        Cancelling the interview will:
+                        <ul class="mb-0">
+                            <li>Send a notification to the applicant</li>
+                            <li>Reset the applicant's status to allow rescheduling</li>
+                            <li>Remove this slot from the interviewer's schedule</li>
+                        </ul>
                     </div>
-                </form>
-            </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-danger">Cancel Interview</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
 <script>
-function updateStatus(interviewId, status) {
-    if (confirm('Are you sure you want to mark this interview as ' + status + '?')) {
-        const form = document.createElement('form');
-        form.method = 'post';
-        
-        const idInput = document.createElement('input');
-        idInput.type = 'hidden';
-        idInput.name = 'interview_id';
-        idInput.value = interviewId;
-        
-        const statusInput = document.createElement('input');
-        statusInput.type = 'hidden';
-        statusInput.name = 'status';
-        statusInput.value = status;
-        
-        form.appendChild(idInput);
-        form.appendChild(statusInput);
-        document.body.appendChild(form);
-        form.submit();
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle cancel modal
+    const cancelModal = document.getElementById('cancelModal');
+    if (cancelModal) {
+        cancelModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const interviewId = button.getAttribute('data-interview-id');
+            document.getElementById('cancelInterviewId').value = interviewId;
+        });
     }
-}
-
-function cancelInterview(interviewId) {
-    document.getElementById('cancel_interview_id').value = interviewId;
-    new bootstrap.Modal(document.getElementById('cancelModal')).show();
-}
+});
 </script>
 
-<?php
-admin_footer();
-?>
+<?php admin_footer(); ?>

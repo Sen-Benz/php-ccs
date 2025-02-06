@@ -112,8 +112,8 @@ try {
 
         // Create interview schedule
         $query = "INSERT INTO interview_schedules 
-                  (applicant_id, interviewer_id, schedule_date, start_time, end_time, notes, meeting_link)
-                  VALUES (?, ?, ?, ?, ?, ?, ?)";
+                  (applicant_id, interviewer_id, schedule_date, start_time, end_time, notes, meeting_link, status)
+                  VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')";
         
         $stmt = $conn->prepare($query);
         $stmt->execute([
@@ -196,130 +196,190 @@ try {
     $error = $e->getMessage();
 }
 
-admin_header('Schedule Interview');
+$page_title = 'Schedule Interview';
+admin_header($page_title);
 ?>
 
-<div class="container-fluid px-4">
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-        <h1 class="h2">Schedule Interview</h1>
-    </div>
+<div class="wrapper">
+    <!-- Sidebar -->
+    <?php include '../includes/sidebar.php'; ?>
 
-    <?php if ($error): ?>
-        <div class="alert alert-danger" role="alert">
-            <?php echo htmlspecialchars($error); ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if ($success): ?>
-        <div class="alert alert-success" role="alert">
-            <?php echo htmlspecialchars($success); ?>
-        </div>
-    <?php endif; ?>
-
-    <div class="row">
-        <div class="col-md-8">
-            <div class="card">
-                <div class="card-body">
-                    <form method="post" id="scheduleForm">
-                        <div class="mb-3">
-                            <label for="applicant_id" class="form-label">Select Applicant</label>
-                            <select class="form-select" id="applicant_id" name="applicant_id" required>
-                                <option value="">Choose an applicant...</option>
-                                <?php foreach ($applicants as $applicant): ?>
-                                    <option value="<?php echo $applicant['id']; ?>">
-                                        <?php echo htmlspecialchars($applicant['applicant_name']); ?> 
-                                        (<?php echo htmlspecialchars($applicant['email']); ?>)
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
+    <!-- Page Content -->
+    <div class="page-content-wrapper">
+        <div class="container-fluid">
+            <!-- Page Header -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                        <div>
+                            <h1 class="h2"><?php echo $page_title; ?></h1>
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb">
+                                    <li class="breadcrumb-item"><a href="dashboard.php">Dashboard</a></li>
+                                    <li class="breadcrumb-item"><a href="interview_list.php">Interview Schedule</a></li>
+                                    <li class="breadcrumb-item active">Schedule New Interview</li>
+                                </ol>
+                            </nav>
                         </div>
-
-                        <div class="mb-3">
-                            <label for="interviewer_id" class="form-label">Select Interviewer</label>
-                            <select class="form-select" id="interviewer_id" name="interviewer_id" required>
-                                <option value="">Choose an interviewer...</option>
-                                <?php foreach ($interviewers as $interviewer): ?>
-                                    <option value="<?php echo $interviewer['id']; ?>">
-                                        <?php echo htmlspecialchars($interviewer['interviewer_name']); ?> 
-                                        (<?php echo strtoupper($interviewer['role']); ?>)
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="schedule_date" class="form-label">Interview Date</label>
-                                    <input type="date" class="form-control" id="schedule_date" name="schedule_date" 
-                                           min="<?php echo date('Y-m-d'); ?>" required>
-                                </div>
-                            </div>
-                            <div class="col-md-6">
-                                <div class="mb-3">
-                                    <label for="meeting_link" class="form-label">Meeting Link (Zoom/Google Meet)</label>
-                                    <input type="url" class="form-control" id="meeting_link" name="meeting_link" 
-                                           placeholder="https://zoom.us/j/..." required>
-                                    <div class="form-text">Enter the Zoom or Google Meet link for the interview</div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label for="start_time" class="form-label">Start Time</label>
-                                    <input type="time" class="form-control" id="start_time" name="start_time" required>
-                                </div>
-                            </div>
-                            <div class="col-md-4">
-                                <div class="mb-3">
-                                    <label for="end_time" class="form-label">End Time</label>
-                                    <input type="time" class="form-control" id="end_time" name="end_time" required>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="notes" class="form-label">Notes</label>
-                            <textarea class="form-control" id="notes" name="notes" rows="3" 
-                                      placeholder="Add any additional notes or instructions..."></textarea>
-                        </div>
-
-                        <button type="submit" class="btn btn-primary">Schedule Interview</button>
-                    </form>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Interview Guidelines</h5>
+            <?php if ($error): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <?php echo htmlspecialchars($error); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
                 </div>
-                <div class="card-body">
-                    <ul class="list-unstyled">
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Schedule interviews during business hours (9 AM - 5 PM)
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Allow at least 1 hour for each interview
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Check interviewer availability before scheduling
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Include specific instructions in notes if needed
-                        </li>
-                        <li class="mb-2">
-                            <i class="bi bi-check-circle-fill text-success me-2"></i>
-                            Ensure applicant has completed Part 2 exam
-                        </li>
-                    </ul>
+            <?php endif; ?>
+
+            <?php if ($success): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <?php echo htmlspecialchars($success); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class='bx bx-calendar-plus'></i> Schedule New Interview
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <form method="post" id="scheduleForm" class="needs-validation" novalidate>
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label for="applicant_id" class="form-label">
+                                            <i class='bx bx-user'></i> Select Applicant
+                                        </label>
+                                        <select class="form-select" id="applicant_id" name="applicant_id" required>
+                                            <option value="">Choose applicant...</option>
+                                            <?php foreach ($applicants as $applicant): ?>
+                                                <option value="<?php echo $applicant['id']; ?>">
+                                                    <?php echo htmlspecialchars($applicant['applicant_name']); ?> - 
+                                                    <?php echo htmlspecialchars($applicant['email']); ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <div class="invalid-feedback">Please select an applicant.</div>
+                                    </div>
+
+                                    <div class="col-md-6">
+                                        <label for="interviewer_id" class="form-label">
+                                            <i class='bx bx-user-voice'></i> Select Interviewer
+                                        </label>
+                                        <select class="form-select" id="interviewer_id" name="interviewer_id" required>
+                                            <option value="">Choose interviewer...</option>
+                                            <?php foreach ($interviewers as $interviewer): ?>
+                                                <option value="<?php echo $interviewer['id']; ?>">
+                                                    <?php echo htmlspecialchars($interviewer['interviewer_name']); ?> 
+                                                    (<?php echo ucfirst($interviewer['role']); ?>)
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                        <div class="invalid-feedback">Please select an interviewer.</div>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="schedule_date" class="form-label">
+                                            <i class='bx bx-calendar'></i> Interview Date
+                                        </label>
+                                        <input type="date" class="form-control" id="schedule_date" name="schedule_date" 
+                                               min="<?php echo date('Y-m-d'); ?>" required>
+                                        <div class="invalid-feedback">Please select a valid date.</div>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="start_time" class="form-label">
+                                            <i class='bx bx-time'></i> Start Time
+                                        </label>
+                                        <input type="time" class="form-control" id="start_time" name="start_time" required>
+                                        <div class="invalid-feedback">Please select a start time.</div>
+                                    </div>
+
+                                    <div class="col-md-4">
+                                        <label for="end_time" class="form-label">
+                                            <i class='bx bx-time-five'></i> End Time
+                                        </label>
+                                        <input type="time" class="form-control" id="end_time" name="end_time" required>
+                                        <div class="invalid-feedback">Please select an end time.</div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label for="meeting_link" class="form-label">
+                                            <i class='bx bx-video'></i> Meeting Link
+                                        </label>
+                                        <input type="url" class="form-control" id="meeting_link" name="meeting_link" 
+                                               placeholder="https://meet.google.com/..." required>
+                                        <div class="invalid-feedback">Please enter a valid meeting link.</div>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <label for="notes" class="form-label">
+                                            <i class='bx bx-note'></i> Additional Notes
+                                        </label>
+                                        <textarea class="form-control" id="notes" name="notes" rows="3" 
+                                                  placeholder="Any special instructions or notes for the interview..."></textarea>
+                                    </div>
+
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class='bx bx-save'></i> Schedule Interview
+                                        </button>
+                                        <a href="interview_list.php" class="btn btn-secondary">
+                                            <i class='bx bx-arrow-back'></i> Back to List
+                                        </a>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="card-title mb-0">
+                                <i class='bx bx-info-circle'></i> Interview Guidelines
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-info">
+                                <h6 class="alert-heading">
+                                    <i class='bx bx-bulb'></i> Important Notes
+                                </h6>
+                                <ul class="mb-0">
+                                    <li>Schedule interviews during business hours (9 AM - 5 PM)</li>
+                                    <li>Allow at least 1-hour duration for each interview</li>
+                                    <li>Check interviewer availability before scheduling</li>
+                                    <li>Provide clear meeting link and instructions</li>
+                                </ul>
+                            </div>
+
+                            <div class="alert alert-warning">
+                                <h6 class="alert-heading">
+                                    <i class='bx bx-error'></i> Before Scheduling
+                                </h6>
+                                <ul class="mb-0">
+                                    <li>Verify applicant's contact information</li>
+                                    <li>Ensure the meeting platform is accessible</li>
+                                    <li>Consider time zones if applicable</li>
+                                    <li>Have backup contact methods ready</li>
+                                </ul>
+                            </div>
+
+                            <div class="mt-4">
+                                <h6><i class='bx bx-link'></i> Recommended Platforms</h6>
+                                <ul class="list-unstyled">
+                                    <li><i class='bx bxl-google'></i> Google Meet</li>
+                                    <li><i class='bx bxl-zoom'></i> Zoom</li>
+                                    <li><i class='bx bxl-microsoft-teams'></i> Microsoft Teams</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -328,59 +388,44 @@ admin_header('Schedule Interview');
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Form validation
     const form = document.getElementById('scheduleForm');
-    const startTime = document.getElementById('start_time');
-    const endTime = document.getElementById('end_time');
-
-    startTime.addEventListener('change', function() {
-        // Set minimum end time to start time
-        endTime.min = this.value;
-        
-        // If end time is before start time, update it
-        if (endTime.value && endTime.value <= this.value) {
-            // Add 1 hour to start time for default end time
-            const startDate = new Date(`2000-01-01T${this.value}`);
-            startDate.setHours(startDate.getHours() + 1);
-            const newEndTime = startDate.toTimeString().slice(0, 5);
-            endTime.value = newEndTime;
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
         }
+        form.classList.add('was-validated');
     });
 
-    form.addEventListener('submit', function(e) {
-        const scheduleDate = document.getElementById('schedule_date').value;
-        const startTimeVal = startTime.value;
-        const endTimeVal = endTime.value;
-
-        // Create Date objects for comparison
-        const scheduleDateTime = new Date(`${scheduleDate}T${startTimeVal}`);
-        const endDateTime = new Date(`${scheduleDate}T${endTimeVal}`);
-        const now = new Date();
-
-        if (scheduleDateTime < now) {
-            e.preventDefault();
-            alert('Interview date and time must be in the future.');
-            return;
+    // Time validation
+    const startTime = document.getElementById('start_time');
+    const endTime = document.getElementById('end_time');
+    const validateTime = function() {
+        if (startTime.value && endTime.value) {
+            if (endTime.value <= startTime.value) {
+                endTime.setCustomValidity('End time must be after start time');
+            } else {
+                endTime.setCustomValidity('');
+            }
         }
+    };
+    startTime.addEventListener('change', validateTime);
+    endTime.addEventListener('change', validateTime);
 
-        if (endDateTime <= scheduleDateTime) {
-            e.preventDefault();
-            alert('End time must be after start time.');
-            return;
-        }
-
-        // Check if interview is during business hours (9 AM - 5 PM)
-        const startHour = scheduleDateTime.getHours();
-        const endHour = endDateTime.getHours();
-
-        if (startHour < 9 || endHour > 17) {
-            e.preventDefault();
-            alert('Please schedule interviews between 9 AM and 5 PM.');
-            return;
+    // Date validation
+    const scheduleDate = document.getElementById('schedule_date');
+    scheduleDate.addEventListener('change', function() {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const selectedDate = new Date(this.value);
+        if (selectedDate < today) {
+            this.setCustomValidity('Please select a future date');
+        } else {
+            this.setCustomValidity('');
         }
     });
 });
 </script>
 
-<?php
-admin_footer();
-?>
+<?php admin_footer(); ?>

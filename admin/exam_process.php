@@ -1,11 +1,13 @@
 <?php
 require_once '../classes/Auth.php';
 require_once '../classes/Exam.php';
+require_once '../classes/Notification.php';
 
 $auth = new Auth();
 $auth->requireRole(['admin', 'super_admin']);
 
 $exam = new Exam();
+$notification = new Notification();
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 
 switch($action) {
@@ -74,6 +76,15 @@ switch($action) {
         $query = "UPDATE exams SET status = 'published' WHERE id = ?";
         $stmt = $exam->conn->prepare($query);
         $result = $stmt->execute([$_GET['id']]);
+        
+        if ($result) {
+            // Send notifications to eligible applicants
+            $notification_result = $notification->sendExamNotifications($_GET['id']);
+            if (!$notification_result['success']) {
+                error_log("Error sending exam notifications: " . $notification_result['error']);
+            }
+        }
+        
         header('Location: exams.php' . ($result ? '?success=1' : '?error=1'));
         break;
 

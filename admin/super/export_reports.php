@@ -21,9 +21,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $end_date = $_POST['end_date'] ?? '';
         $format = $_POST['format'] ?? 'csv';
 
-        // Validate dates
+        // Validate inputs
+        if (!$report_type) {
+            throw new Exception('Please select a report type.');
+        }
         if (!$start_date || !$end_date) {
             throw new Exception('Please select both start and end dates.');
+        }
+        if ($start_date > $end_date) {
+            throw new Exception('Start date cannot be later than end date.');
         }
 
         // Build query based on report type
@@ -49,17 +55,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'exams':
                 $query = "SELECT 
                             er.id,
-                            CONCAT(a.first_name, ' ', a.last_name) as applicant_name,
+                            CONCAT(u.first_name, ' ', u.last_name) as applicant_name,
                             er.score,
                             e.title as exam_title,
                             e.part as exam_part,
-                            er.status as result,
-                            er.completed_at as exam_date
+                            er.status,
+                            er.created_at as exam_date
                          FROM exam_results er
-                         JOIN applicants a ON er.applicant_id = a.id
+                         JOIN users u ON er.user_id = u.id
                          JOIN exams e ON er.exam_id = e.id
-                         WHERE DATE(er.completed_at) BETWEEN ? AND ?
-                         ORDER BY er.completed_at DESC";
+                         WHERE DATE(er.created_at) BETWEEN ? AND ?
+                         ORDER BY er.created_at DESC";
                 $filename = "exam_results_report";
                 $headers = ['ID', 'Applicant Name', 'Score', 'Exam Title', 'Part', 'Result', 'Date Taken'];
                 break;
@@ -99,34 +105,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Generate filename with date range
         $filename = sprintf("%s_%s_to_%s.%s", 
-            $filename, 
-            str_replace('-', '', $start_date),
-            str_replace('-', '', $end_date),
+            $filename,
+            date('Y-m-d', strtotime($start_date)),
+            date('Y-m-d', strtotime($end_date)),
             $format
         );
 
         // Set headers for download
         header('Content-Type: text/csv');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
-        header('Pragma: no-cache');
-        header('Expires: 0');
 
-        // Create output stream
+        // Open output stream
         $output = fopen('php://output', 'w');
 
-        // Add BOM for Excel UTF-8 compatibility
-        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-
-        // Write headers
+        // Add headers
         fputcsv($output, $headers);
 
-        // Write data rows
+        // Add data rows
         foreach ($results as $row) {
             fputcsv($output, $row);
         }
 
+        // Close the output stream
         fclose($output);
-        exit();
+        exit;
 
     } catch (Exception $e) {
         $error = $e->getMessage();
@@ -137,138 +139,182 @@ admin_header('Export Reports');
 ?>
 
 <div class="container-fluid px-4">
+    <!-- Header -->
     <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-        <h1 class="h2">Export Reports</h1>
+        <div>
+            <h1 class="h2 mb-0">Export Reports</h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="../super/dashboard.php">Dashboard</a></li>
+                    <li class="breadcrumb-item">Reports</li>
+                    <li class="breadcrumb-item active" aria-current="page">Export Reports</li>
+                </ol>
+            </nav>
+        </div>
     </div>
 
     <?php if ($error): ?>
         <div class="alert alert-danger" role="alert">
-            <?php echo htmlspecialchars($error); ?>
+            <i class="bx bx-error-circle me-1"></i> <?php echo htmlspecialchars($error); ?>
         </div>
     <?php endif; ?>
 
     <?php if ($success): ?>
         <div class="alert alert-success" role="alert">
-            <?php echo htmlspecialchars($success); ?>
+            <i class="bx bx-check-circle me-1"></i> <?php echo htmlspecialchars($success); ?>
         </div>
     <?php endif; ?>
 
-    <div class="card">
-        <div class="card-body">
-            <form method="post" class="row g-3">
-                <!-- Report Type -->
-                <div class="col-md-4">
-                    <label for="report_type" class="form-label">Report Type</label>
-                    <select class="form-select" id="report_type" name="report_type" required>
-                        <option value="">Select Report Type</option>
-                        <option value="applicants">Applicants Report</option>
-                        <option value="exams">Exam Results Report</option>
-                        <option value="interviews">Interview Results Report</option>
-                    </select>
-                </div>
-
-                <!-- Date Range -->
-                <div class="col-md-3">
-                    <label for="start_date" class="form-label">Start Date</label>
-                    <input type="date" class="form-control" id="start_date" name="start_date" required>
-                </div>
-
-                <div class="col-md-3">
-                    <label for="end_date" class="form-label">End Date</label>
-                    <input type="date" class="form-control" id="end_date" name="end_date" required>
-                </div>
-
-                <!-- Export Format -->
-                <div class="col-md-2">
-                    <label for="format" class="form-label">Format</label>
-                    <select class="form-select" id="format" name="format">
-                        <option value="csv">CSV</option>
-                    </select>
-                </div>
-
-                <div class="col-12">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-download"></i> Export Report
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Report Descriptions -->
-    <div class="row mt-4">
-        <div class="col-md-4">
+    <div class="row">
+        <div class="col-md-8 mx-auto">
             <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Applicants Report</h5>
-                    <p class="card-text">
-                        Includes detailed information about applicants including personal details,
-                        preferred course, and application status.
-                    </p>
-                    <ul class="list-unstyled">
-                        <li><i class="bi bi-check-circle text-success"></i> Personal Information</li>
-                        <li><i class="bi bi-check-circle text-success"></i> Contact Details</li>
-                        <li><i class="bi bi-check-circle text-success"></i> Application Status</li>
-                    </ul>
+                <div class="card-header bg-light py-3">
+                    <h5 class="card-title mb-0">
+                        <i class="bx bx-export me-2"></i>Generate Report
+                    </h5>
                 </div>
-            </div>
-        </div>
-
-        <div class="col-md-4">
-            <div class="card">
                 <div class="card-body">
-                    <h5 class="card-title">Exam Results Report</h5>
-                    <p class="card-text">
-                        Contains comprehensive exam results including scores, completion times,
-                        and exam dates for all applicants.
-                    </p>
-                    <ul class="list-unstyled">
-                        <li><i class="bi bi-check-circle text-success"></i> Exam Scores</li>
-                        <li><i class="bi bi-check-circle text-success"></i> Completion Times</li>
-                        <li><i class="bi bi-check-circle text-success"></i> Date and Time Details</li>
-                    </ul>
-                </div>
-            </div>
-        </div>
+                    <form method="POST" class="needs-validation" novalidate>
+                        <!-- Report Type -->
+                        <div class="mb-4">
+                            <label class="form-label">Report Type</label>
+                            <div class="row g-3">
+                                <div class="col-md-4">
+                                    <div class="form-check custom-card">
+                                        <input class="form-check-input" type="radio" name="report_type" 
+                                               id="applicants" value="applicants" required>
+                                        <label class="form-check-label card w-100" for="applicants">
+                                            <div class="card-body text-center">
+                                                <i class="bx bx-user-pin fs-1 mb-2 text-primary"></i>
+                                                <h6 class="mb-1">Applicants</h6>
+                                                <small class="text-muted">Export applicant records</small>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check custom-card">
+                                        <input class="form-check-input" type="radio" name="report_type" 
+                                               id="exams" value="exams" required>
+                                        <label class="form-check-label card w-100" for="exams">
+                                            <div class="card-body text-center">
+                                                <i class="bx bx-edit fs-1 mb-2 text-success"></i>
+                                                <h6 class="mb-1">Exam Results</h6>
+                                                <small class="text-muted">Export exam scores</small>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="form-check custom-card">
+                                        <input class="form-check-input" type="radio" name="report_type" 
+                                               id="interviews" value="interviews" required>
+                                        <label class="form-check-label card w-100" for="interviews">
+                                            <div class="card-body text-center">
+                                                <i class="bx bx-user-voice fs-1 mb-2 text-info"></i>
+                                                <h6 class="mb-1">Interviews</h6>
+                                                <small class="text-muted">Export interview results</small>
+                                            </div>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">Interview Results Report</h5>
-                    <p class="card-text">
-                        Provides detailed interview information including schedules, interviewers,
-                        scores, and final results.
-                    </p>
-                    <ul class="list-unstyled">
-                        <li><i class="bi bi-check-circle text-success"></i> Interview Details</li>
-                        <li><i class="bi bi-check-circle text-success"></i> Scores and Results</li>
-                        <li><i class="bi bi-check-circle text-success"></i> Interviewer Information</li>
-                    </ul>
+                        <!-- Date Range -->
+                        <div class="mb-4">
+                            <label class="form-label">Date Range</label>
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bx bx-calendar"></i></span>
+                                        <input type="date" class="form-control" id="start_date" name="start_date" required>
+                                        <div class="invalid-feedback">Please select a start date.</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="bx bx-calendar"></i></span>
+                                        <input type="date" class="form-control" id="end_date" name="end_date" required>
+                                        <div class="invalid-feedback">Please select an end date.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Submit Button -->
+                        <div class="text-end">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bx bx-download me-1"></i> Generate Report
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
+<style>
+.custom-card {
+    padding: 0;
+    margin: 0;
+}
+.custom-card input[type="radio"] {
+    display: none;
+}
+.custom-card label.card {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border: 2px solid transparent;
+}
+.custom-card input[type="radio"]:checked + label.card {
+    border-color: #4e73df;
+    background-color: #f8f9fc;
+}
+.custom-card .card-body {
+    padding: 1.5rem;
+}
+.custom-card i {
+    display: block;
+}
+</style>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Set default dates
+    // Set default dates to current month
     const today = new Date();
-    const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+    const firstDay = new Date(today.getFullYear(), today.getMonth(), 1);
     
-    document.getElementById('start_date').value = firstDayOfMonth.toISOString().split('T')[0];
+    document.getElementById('start_date').value = firstDay.toISOString().split('T')[0];
     document.getElementById('end_date').value = today.toISOString().split('T')[0];
 
-    // Validate date range
-    document.querySelector('form').addEventListener('submit', function(e) {
-        const startDate = new Date(document.getElementById('start_date').value);
-        const endDate = new Date(document.getElementById('end_date').value);
-        
-        if (startDate > endDate) {
-            e.preventDefault();
-            alert('Start date cannot be later than end date.');
+    // Form validation
+    const form = document.querySelector('.needs-validation');
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
         }
+        form.classList.add('was-validated');
     });
+
+    // Date validation
+    const startDate = document.getElementById('start_date');
+    const endDate = document.getElementById('end_date');
+
+    function validateDates() {
+        if (startDate.value && endDate.value) {
+            if (startDate.value > endDate.value) {
+                endDate.setCustomValidity('End date must be after start date');
+            } else {
+                endDate.setCustomValidity('');
+            }
+        }
+    }
+
+    startDate.addEventListener('change', validateDates);
+    endDate.addEventListener('change', validateDates);
 });
 </script>
 

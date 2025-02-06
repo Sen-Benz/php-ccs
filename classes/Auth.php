@@ -1,46 +1,49 @@
 <?php
-require_once __DIR__ . '/../config/database.php';
-
 class Auth {
     private $conn;
-    private $table_name = "users";
+    private $database;
 
     public function __construct() {
-        $database = new Database();
-        $this->conn = $database->getConnection();
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
+        
+        require_once __DIR__ . '/../config/database.php';
+        $this->database = new Database();
+        $this->conn = $this->database->getConnection();
     }
 
     public function login($email, $password) {
-        $query = "SELECT id, email, password, role, status, first_name, last_name FROM " . $this->table_name . " WHERE email = ?";
-        $stmt = $this->conn->prepare($query);
-        $stmt->execute([$email]);
-
-        if($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            if(password_verify($password, $row['password'])) {
-                if($row['status'] !== 'active') {
-                    return ['success' => false, 'message' => 'Account is not active'];
-                }
+        try {
+            $stmt = $this->conn->prepare("SELECT * FROM users WHERE email = ? AND status = 'active' LIMIT 1");
+            $stmt->execute([$email]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($user && password_verify($password, $user['password'])) {
+                // Clear any existing session data
+                session_unset();
                 
-                session_start();
-                $_SESSION['user_id'] = $row['id'];
-                $_SESSION['role'] = $row['role'];
-                $_SESSION['email'] = $row['email'];
-                $_SESSION['first_name'] = $row['first_name'];
-                $_SESSION['last_name'] = $row['last_name'];
+                // Set essential session data only
+                $_SESSION['user_id'] = $user['id'];
+                $_SESSION['user_role'] = $user['role'];
+                $_SESSION['LAST_ACTIVITY'] = time();
                 
-                // Log activity
-                $this->logActivity($row['id'], 'login', 'User logged in');
-                
-                return ['success' => true, 'role' => $row['role']];
+                return [
+                    'success' => true,
+                    'role' => $user['role']
+                ];
             }
+            
+            return ['success' => false, 'message' => 'Invalid credentials'];
+        } catch (Exception $e) {
+            error_log("Login error: " . $e->getMessage());
+            return ['success' => false, 'message' => 'System error'];
         }
-        
-        return ['success' => false, 'message' => 'Invalid credentials'];
     }
 
     public function register($email, $password, $role = 'applicant') {
         // Check if email already exists
-        $query = "SELECT id FROM " . $this->table_name . " WHERE email = ?";
+        $query = "SELECT id FROM users WHERE email = ?";
         $stmt = $this->conn->prepare($query);
         $stmt->execute([$email]);
         
@@ -49,7 +52,7 @@ class Auth {
         }
 
         // Insert new user
-        $query = "INSERT INTO " . $this->table_name . " (email, password, role, status) VALUES (?, ?, ?, ?)";
+        $query = "INSERT INTO users (email, password, role, status) VALUES (?, ?, ?, ?)";
         $stmt = $this->conn->prepare($query);
         
         $hashed_password = password_hash($password, PASSWORD_DEFAULT);
@@ -62,49 +65,104 @@ class Auth {
         return ['success' => false, 'message' => 'Registration failed'];
     }
 
-    public function logout() {
-        if(session_status() === PHP_SESSION_NONE) {
-            session_start();
+    public function isLoggedIn() {
+        return isset($_SESSION['user_id']) && !empty($_SESSION['user_id']);
+    }
+
+    public function getCurrentUser() {
+        if (!$this->isLoggedIn()) {
+            return null;
         }
-        
+
+        try {
+            $stmt = $this->conn->prepare("SELECT * FROM users WHERE id = ? AND status = 'active' LIMIT 1");
+            $stmt->execute([$_SESSION['user_id']]);
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if (!$user) {
+                $this->logout();
+                return null;
+            }
+            
+            return $user;
+        } catch (Exception $e) {
+            error_log("Auth error: " . $e->getMessage());
+            return null;
+        }
+    }
+
+    public function logout() {
         if(isset($_SESSION['user_id'])) {
             $this->logActivity($_SESSION['user_id'], 'logout', 'User logged out');
         }
         
+        $_SESSION = array();
+        if (isset($_COOKIE[session_name()])) {
+            setcookie(session_name(), '', time()-3600, '/');
+        }
         session_destroy();
-        return true;
+        session_start();
     }
 
-    public function isLoggedIn() {
-        if(session_status() === PHP_SESSION_NONE) {
-            session_start();
+    public function requireLogin() {
+        if (!$this->isLoggedIn()) {
+            $_SESSION['redirect_url'] = $_SERVER['REQUEST_URI'];
+            header('Location: /php-ccs/login.php');
+            exit();
         }
-        return isset($_SESSION['user_id']);
     }
 
-    public function getCurrentUser() {
-        if(!$this->isLoggedIn()) {
-            return null;
+    public function requireRole($role) {
+        // Debug information
+        error_log("Checking role: " . $role);
+        error_log("Session data: " . print_r($_SESSION, true));
+        
+        // Check if user is logged in first
+        if (!isset($_SESSION['user_id'])) {
+            error_log("No user_id in session");
+            $_SESSION['intended_url'] = $_SERVER['REQUEST_URI'];
+            header('Location: /php-ccs/login.php');
+            exit();
         }
 
-        // If first_name and last_name are not in session, fetch them from database
-        if (!isset($_SESSION['first_name']) || !isset($_SESSION['last_name'])) {
-            $query = "SELECT first_name, last_name FROM " . $this->table_name . " WHERE id = ?";
-            $stmt = $this->conn->prepare($query);
+        // Get user data directly from database
+        try {
+            $stmt = $this->conn->prepare("SELECT role, status FROM users WHERE id = ? LIMIT 1");
             $stmt->execute([$_SESSION['user_id']]);
-            if ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                $_SESSION['first_name'] = $row['first_name'];
-                $_SESSION['last_name'] = $row['last_name'];
-            }
-        }
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        return [
-            'id' => $_SESSION['user_id'],
-            'email' => $_SESSION['email'],
-            'role' => $_SESSION['role'],
-            'first_name' => $_SESSION['first_name'] ?? '',
-            'last_name' => $_SESSION['last_name'] ?? ''
-        ];
+            if (!$user || $user['status'] !== 'active' || $user['role'] !== $role) {
+                error_log("User validation failed: " . print_r($user, true));
+                $this->logout();
+                $_SESSION['error'] = 'Access denied. Please log in with appropriate credentials.';
+                header('Location: /php-ccs/login.php');
+                exit();
+            }
+
+            return true;
+        } catch (Exception $e) {
+            error_log("Database error: " . $e->getMessage());
+            $this->logout();
+            header('Location: /php-ccs/login.php?error=system');
+            exit();
+        }
+    }
+
+    private function redirectToDashboard($role) {
+        switch($role) {
+            case 'super_admin':
+                header('Location: /php-ccs/admin/super/dashboard.php');
+                break;
+            case 'admin':
+                header('Location: /php-ccs/admin/dashboard.php');
+                break;
+            case 'applicant':
+                header('Location: /php-ccs/applicant/dashboard.php');
+                break;
+            default:
+                header('Location: /php-ccs/login.php');
+        }
+        exit();
     }
 
     public function logActivity($user_id, $action, $details) {
@@ -112,37 +170,6 @@ class Auth {
         $stmt = $this->conn->prepare($query);
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
         $stmt->execute([$user_id, $action, $details, $ip]);
-    }
-
-    public function requireRole($allowed_roles) {
-        if(!$this->isLoggedIn()) {
-            header('Location: /php-ccs/php-ccs/login.php');
-            exit();
-        }
-
-        // Convert single role to array
-        if (!is_array($allowed_roles)) {
-            $allowed_roles = [$allowed_roles];
-        }
-
-        $user = $this->getCurrentUser();
-        if (!in_array($user['role'], $allowed_roles)) {
-            // Redirect based on user's actual role
-            switch($user['role']) {
-                case 'super_admin':
-                    header('Location: /php-ccs/php-ccs/admin/super/dashboard.php');
-                    break;
-                case 'admin':
-                    header('Location: /php-ccs/php-ccs/admin/dashboard.php');
-                    break;
-                case 'applicant':
-                    header('Location: /php-ccs/php-ccs/applicant/dashboard.php');
-                    break;
-                default:
-                    header('Location: /php-ccs/php-ccs/login.php');
-            }
-            exit();
-        }
     }
 }
 ?>

@@ -1,5 +1,6 @@
 <?php
 require_once 'classes/Auth.php';
+require_once 'config/database.php';
 
 $auth = new Auth();
 $error = '';
@@ -17,26 +18,54 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
     if($password !== $confirm_password) {
         $error = 'Passwords do not match';
     } else {
-        // Register the user
-        $result = $auth->register($email, $password);
-        
-        if($result['success']) {
-            // Add applicant details
-            $query = "INSERT INTO applicants (user_id, first_name, last_name, contact_number, preferred_course) VALUES (?, ?, ?, ?, ?)";
+        try {
+            // Generate applicant number
             $database = new Database();
             $conn = $database->getConnection();
-            $stmt = $conn->prepare($query);
             
-            if($stmt->execute([$result['user_id'], $first_name, $last_name, $contact_number, $preferred_course])) {
-                $success = 'Registration successful! Please wait for admin approval before logging in.';
+            // Get the current year
+            $year = date('Y');
+            
+            // Get the latest applicant number for this year
+            $query = "SELECT MAX(CAST(SUBSTRING(applicant_number, 6) AS UNSIGNED)) as max_num 
+                     FROM applicants 
+                     WHERE applicant_number LIKE ?";
+            $stmt = $conn->prepare($query);
+            $stmt->execute([$year . '%']);
+            $result = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Generate new applicant number
+            $sequence = ($result['max_num'] ?? 0) + 1;
+            $applicant_number = $year . str_pad($sequence, 4, '0', STR_PAD_LEFT);
+            
+            // Register the user
+            $result = $auth->register($email, $password);
+            
+            if($result['success']) {
+                // Add applicant details
+                $query = "INSERT INTO applicants (user_id, applicant_number, first_name, last_name, contact_number, preferred_course, progress_status) 
+                         VALUES (?, ?, ?, ?, ?, ?, 'registered')";
+                $stmt = $conn->prepare($query);
+                
+                if($stmt->execute([$result['user_id'], $applicant_number, $first_name, $last_name, $contact_number, $preferred_course])) {
+                    $success = 'Registration successful! Your applicant number is ' . $applicant_number . '. Please wait for admin approval before logging in.';
+                } else {
+                    $error = 'Failed to save applicant details';
+                }
             } else {
-                $error = 'Failed to save applicant details';
+                $error = $result['message'];
             }
-        } else {
-            $error = $result['message'];
+        } catch (PDOException $e) {
+            $error = 'Database error: ' . $e->getMessage();
         }
     }
 }
+
+// Get list of available courses
+$courses = [
+    'BS Computer Science',
+    'BS Information Technology'
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -51,18 +80,25 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         .register-container {
             max-width: 600px;
-            margin: 50px auto;
+            margin: 2rem auto;
         }
         .card {
             border: none;
             border-radius: 10px;
-            box-shadow: 0 0 20px rgba(0,0,0,0.1);
+            box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
         }
         .card-header {
-            background-color: #fff;
-            border-bottom: 2px solid #f8f9fa;
-            border-top-left-radius: 10px !important;
-            border-top-right-radius: 10px !important;
+            background-color: #0d6efd;
+            color: white;
+            border-radius: 10px 10px 0 0 !important;
+        }
+        .btn-primary {
+            background-color: #0d6efd;
+            border-color: #0d6efd;
+        }
+        .btn-primary:hover {
+            background-color: #0b5ed7;
+            border-color: #0b5ed7;
         }
     </style>
 </head>
@@ -72,70 +108,85 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="card-header text-center">
                 <h4 class="mb-0">Register for CCS Freshman Screening</h4>
             </div>
-            <div class="card-body p-4">
+            <div class="card-body">
                 <?php if ($error): ?>
                     <div class="alert alert-danger" role="alert">
                         <?php echo htmlspecialchars($error); ?>
                     </div>
                 <?php endif; ?>
-
+                
                 <?php if ($success): ?>
                     <div class="alert alert-success" role="alert">
                         <?php echo htmlspecialchars($success); ?>
-                        <br>
-                        <a href="login.php" class="alert-link">Click here to login</a>
                     </div>
                 <?php endif; ?>
 
                 <form method="post" class="needs-validation" novalidate>
-                    <div class="row mb-3">
+                    <div class="row g-3">
                         <div class="col-md-6">
                             <label for="first_name" class="form-label">First Name</label>
                             <input type="text" class="form-control" id="first_name" name="first_name" required>
+                            <div class="invalid-feedback">
+                                Please enter your first name.
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label for="last_name" class="form-label">Last Name</label>
                             <input type="text" class="form-control" id="last_name" name="last_name" required>
+                            <div class="invalid-feedback">
+                                Please enter your last name.
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                            <div class="invalid-feedback">
+                                Please enter a valid email address.
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="contact_number" class="form-label">Contact Number</label>
+                            <input type="tel" class="form-control" id="contact_number" name="contact_number" required>
+                            <div class="invalid-feedback">
+                                Please enter your contact number.
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label for="preferred_course" class="form-label">Preferred Course</label>
+                            <select class="form-select" id="preferred_course" name="preferred_course" required>
+                                <option value="">Choose...</option>
+                                <?php foreach ($courses as $course): ?>
+                                    <option value="<?php echo htmlspecialchars($course); ?>"><?php echo htmlspecialchars($course); ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                            <div class="invalid-feedback">
+                                Please select your preferred course.
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" required>
+                            <div class="invalid-feedback">
+                                Please enter a password.
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="confirm_password" class="form-label">Confirm Password</label>
+                            <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
+                            <div class="invalid-feedback">
+                                Please confirm your password.
+                            </div>
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="email" class="form-label">Email Address</label>
-                        <input type="email" class="form-control" id="email" name="email" required>
+                    <div class="mt-4">
+                        <button class="btn btn-primary w-100" type="submit">Register</button>
                     </div>
-
-                    <div class="mb-3">
-                        <label for="contact_number" class="form-label">Contact Number</label>
-                        <input type="tel" class="form-control" id="contact_number" name="contact_number" required>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="preferred_course" class="form-label">Preferred Course</label>
-                        <select class="form-select" id="preferred_course" name="preferred_course" required>
-                            <option value="">Select a course</option>
-                            <option value="BSIT">Bachelor of Science in Information Technology (BSIT)</option>
-                            <option value="BSCS">Bachelor of Science in Computer Science (BSCS)</option>
-                        </select>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="password" class="form-label">Password</label>
-                        <input type="password" class="form-control" id="password" name="password" required>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="confirm_password" class="form-label">Confirm Password</label>
-                        <input type="password" class="form-control" id="confirm_password" name="confirm_password" required>
-                    </div>
-
-                    <div class="d-grid">
-                        <button type="submit" class="btn btn-primary">Register</button>
+                    
+                    <div class="text-center mt-3">
+                        <p>Already have an account? <a href="login.php">Login here</a></p>
                     </div>
                 </form>
-
-                <div class="text-center mt-3">
-                    Already have an account? <a href="login.php">Login here</a>
-                </div>
             </div>
         </div>
     </div>

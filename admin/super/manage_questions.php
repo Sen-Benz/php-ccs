@@ -1,5 +1,6 @@
 <?php
 require_once '../../classes/Auth.php';
+require_once '../../config/database.php';
 require_once '../includes/layout.php';
 
 // Start the session if not already started
@@ -125,96 +126,171 @@ try {
     $stmt->execute([$exam_id]);
     $questions = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Calculate total points
+    $total_points = array_sum(array_column($questions, 'points'));
+
 } catch (Exception $e) {
     $error = $e->getMessage();
 }
 
-admin_header('Manage Questions');
+$page_title = 'Manage Questions';
+admin_header($page_title);
 ?>
 
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pb-2 mb-3 border-bottom">
-    <div>
-        <h1 class="h2">Manage Questions</h1>
-        <p class="text-muted">
-            Exam: <?php echo htmlspecialchars($exam['title']); ?>
-            (<?php echo ucfirst($exam['type']); ?>)
-        </p>
-    </div>
-    <div class="btn-toolbar mb-2 mb-md-0">
-        <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addQuestionModal">
-            <i class="bi bi-plus-lg"></i> Add Question
-        </button>
-    </div>
-</div>
+<div class="wrapper">
+    <!-- Sidebar -->
+    <?php include '../includes/sidebar.php'; ?>
 
-<?php if (isset($_SESSION['success_message'])): ?>
-    <div class="alert alert-success" role="alert">
-        <?php 
-        echo htmlspecialchars($_SESSION['success_message']);
-        unset($_SESSION['success_message']);
-        ?>
-    </div>
-<?php endif; ?>
-
-<?php if ($error): ?>
-    <div class="alert alert-danger" role="alert">
-        <?php echo htmlspecialchars($error); ?>
-    </div>
-<?php endif; ?>
-
-<div class="card">
-    <div class="card-body">
-        <?php if (empty($questions)): ?>
-            <p class="text-center text-muted my-5">No questions added yet. Click the "Add Question" button to add your first question.</p>
-        <?php else: ?>
-            <div class="list-group">
-                <?php foreach ($questions as $index => $question): ?>
-                    <div class="list-group-item">
-                        <div class="d-flex w-100 justify-content-between">
-                            <h5 class="mb-1">Question <?php echo $index + 1; ?></h5>
-                            <small><?php echo ucfirst($question['question_type']); ?> - <?php echo $question['points']; ?> points</small>
+    <!-- Page Content -->
+    <div class="page-content-wrapper">
+        <div class="container-fluid">
+            <!-- Page Header -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+                        <div>
+                            <h1 class="h2"><?php echo $page_title; ?></h1>
+                            <nav aria-label="breadcrumb">
+                                <ol class="breadcrumb">
+                                    <li class="breadcrumb-item"><a href="list_exams.php">Exams</a></li>
+                                    <li class="breadcrumb-item active" aria-current="page">Manage Questions</li>
+                                </ol>
+                            </nav>
                         </div>
-                        <p class="mb-1"><?php echo nl2br(htmlspecialchars($question['question_text'])); ?></p>
-                        
-                        <?php if ($question['question_type'] === 'multiple_choice'): ?>
-                            <?php 
-                            $options = json_decode($question['options'], true);
-                            if ($options): 
-                            ?>
-                                <div class="ms-4 mb-2">
-                                    <?php foreach ($options as $i => $option): ?>
-                                        <div class="<?php echo $i == $question['correct_answer'] ? 'text-success fw-bold' : ''; ?>">
-                                            <?php echo chr(65 + $i) . '. ' . htmlspecialchars($option); ?>
-                                            <?php if ($i == $question['correct_answer']) echo ' ✓'; ?>
+                        <div class="btn-toolbar mb-2 mb-md-0">
+                            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#addQuestionModal">
+                                <i class='bx bx-plus'></i> Add Question
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exam Info Card -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Exam Details</h5>
+                            <div class="table-responsive">
+                                <table class="table table-sm">
+                                    <tr>
+                                        <th width="120">Title:</th>
+                                        <td><?php echo htmlspecialchars($exam['title']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Type:</th>
+                                        <td><?php echo ucfirst($exam['type']); ?></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Part:</th>
+                                        <td>Part <?php echo $exam['part']; ?></td>
+                                    </tr>
+                                    <tr>
+                                        <th>Duration:</th>
+                                        <td><?php echo $exam['duration_minutes']; ?> minutes</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Questions:</th>
+                                        <td><?php echo count($questions); ?> questions (<?php echo $total_points; ?> points total)</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Alert Messages -->
+            <?php if (isset($_SESSION['success_message'])): ?>
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <?php 
+                    echo htmlspecialchars($_SESSION['success_message']);
+                    unset($_SESSION['success_message']);
+                    ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($error): ?>
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <?php echo htmlspecialchars($error); ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            <?php endif; ?>
+
+            <!-- Questions List -->
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-body">
+                            <?php if (empty($questions)): ?>
+                                <div class="text-center py-5">
+                                    <i class='bx bx-question-mark bx-lg text-muted'></i>
+                                    <p class="text-muted mt-2">No questions added yet. Click the "Add Question" button to add your first question.</p>
+                                </div>
+                            <?php else: ?>
+                                <div class="list-group">
+                                    <?php foreach ($questions as $index => $question): ?>
+                                        <div class="list-group-item">
+                                            <div class="d-flex w-100 justify-content-between align-items-center mb-2">
+                                                <h5 class="mb-0">
+                                                    Question <?php echo $index + 1; ?>
+                                                    <span class="badge bg-primary ms-2"><?php echo $question['points']; ?> points</span>
+                                                </h5>
+                                                <div>
+                                                    <span class="badge bg-secondary"><?php echo ucfirst($question['question_type']); ?></span>
+                                                </div>
+                                            </div>
+                                            
+                                            <div class="question-content">
+                                                <p class="mb-3"><?php echo nl2br(htmlspecialchars($question['question_text'])); ?></p>
+                                                
+                                                <?php if ($question['question_type'] === 'multiple_choice'): ?>
+                                                    <?php 
+                                                    $options = json_decode($question['options'], true);
+                                                    if ($options): 
+                                                    ?>
+                                                        <div class="ms-4 mb-3">
+                                                            <?php foreach ($options as $i => $option): ?>
+                                                                <div class="option-item <?php echo $i == $question['correct_answer'] ? 'text-success fw-bold' : ''; ?>">
+                                                                    <?php echo chr(65 + $i) . '. ' . htmlspecialchars($option); ?>
+                                                                    <?php if ($i == $question['correct_answer']) echo ' <i class="bx bx-check-circle"></i>'; ?>
+                                                                </div>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                <?php else: ?>
+                                                    <?php if (!empty($question['coding_template'])): ?>
+                                                        <div class="mb-3">
+                                                            <strong>Code Template:</strong>
+                                                            <pre class="bg-light p-3 mt-2 rounded"><code class="language-php"><?php echo htmlspecialchars($question['coding_template']); ?></code></pre>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                    <?php if (!empty($question['solution'])): ?>
+                                                        <div class="mb-3">
+                                                            <strong>Solution:</strong>
+                                                            <pre class="bg-light p-3 mt-2 rounded"><code class="language-php"><?php echo htmlspecialchars($question['solution']); ?></code></pre>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                <?php endif; ?>
+
+                                                <?php if (!empty($question['explanation'])): ?>
+                                                    <div class="mt-2">
+                                                        <strong>Explanation:</strong>
+                                                        <p class="text-muted mb-0"><?php echo nl2br(htmlspecialchars($question['explanation'])); ?></p>
+                                                    </div>
+                                                <?php endif; ?>
+                                            </div>
                                         </div>
                                     <?php endforeach; ?>
                                 </div>
                             <?php endif; ?>
-                        <?php else: ?>
-                            <?php if (!empty($question['coding_template'])): ?>
-                                <div class="mb-3">
-                                    <strong>Code Snippet (Find the missing syntax):</strong>
-                                    <pre class="bg-light p-2 mt-1"><code><?php echo htmlspecialchars($question['coding_template']); ?></code></pre>
-                                </div>
-                            <?php endif; ?>
-                            <?php if (!empty($question['solution'])): ?>
-                                <div class="mb-3">
-                                    <strong>Correct Solution:</strong>
-                                    <pre class="bg-light p-2 mt-1"><code><?php echo htmlspecialchars($question['solution']); ?></code></pre>
-                                </div>
-                            <?php endif; ?>
-                        <?php endif; ?>
-
-                        <?php if (!empty($question['explanation'])): ?>
-                            <div class="mt-2">
-                                <strong>Explanation:</strong>
-                                <p class="text-muted mb-0"><?php echo nl2br(htmlspecialchars($question['explanation'])); ?></p>
-                            </div>
-                        <?php endif; ?>
+                        </div>
                     </div>
-                <?php endforeach; ?>
+                </div>
             </div>
-        <?php endif; ?>
+        </div>
     </div>
 </div>
 
@@ -222,86 +298,87 @@ admin_header('Manage Questions');
 <div class="modal fade" id="addQuestionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <form method="POST" id="addQuestionForm">
-                <input type="hidden" name="action" value="add_question">
-                
-                <div class="modal-header">
-                    <h5 class="modal-title">Add Question</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Question</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="POST" id="addQuestionForm" class="needs-validation" novalidate>
                 <div class="modal-body">
-                    <div class="mb-3">
-                        <label for="question_text" class="form-label">Question Text</label>
-                        <textarea class="form-control" id="question_text" name="question_text" rows="3" required></textarea>
-                    </div>
-
+                    <input type="hidden" name="action" value="add_question">
+                    
                     <div class="mb-3">
                         <label for="question_type" class="form-label">Question Type</label>
                         <select class="form-select" id="question_type" name="question_type" required>
-                            <option value="">Select type...</option>
-                            <option value="multiple_choice" <?php echo $exam['type'] === 'mcq' ? 'selected' : ''; ?>>Multiple Choice</option>
-                            <option value="coding" <?php echo $exam['type'] === 'coding' ? 'selected' : ''; ?>>Coding</option>
+                            <option value="">Select question type...</option>
+                            <option value="multiple_choice">Multiple Choice</option>
+                            <option value="coding">Coding</option>
                         </select>
+                        <div class="invalid-feedback">Please select a question type</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="question_text" class="form-label">Question Text</label>
+                        <textarea class="form-control" id="question_text" name="question_text" rows="3" required></textarea>
+                        <div class="invalid-feedback">Please enter the question text</div>
                     </div>
 
                     <div class="mb-3">
                         <label for="points" class="form-label">Points</label>
                         <input type="number" class="form-control" id="points" name="points" value="1" min="1" required>
+                        <div class="invalid-feedback">Please enter a valid point value</div>
                     </div>
 
-                    <!-- Multiple Choice Fields -->
-                    <div id="multipleChoiceFields" style="display: none;">
+                    <!-- Multiple Choice Options -->
+                    <div id="multipleChoiceOptions" style="display: none;">
                         <div class="mb-3">
                             <label class="form-label">Options</label>
                             <div id="optionsContainer">
-                                <div class="input-group mb-2">
-                                    <div class="input-group-text">
-                                        <input type="radio" name="correct_answer" value="0">
+                                <?php for ($i = 0; $i < 4; $i++): ?>
+                                    <div class="input-group mb-2">
+                                        <span class="input-group-text"><?php echo chr(65 + $i); ?></span>
+                                        <input type="text" class="form-control" name="options[]" placeholder="Enter option <?php echo chr(65 + $i); ?>">
                                     </div>
-                                    <input type="text" class="form-control" name="options[]" placeholder="Option 1">
-                                </div>
+                                <?php endfor; ?>
                             </div>
-                            <button type="button" class="btn btn-outline-secondary btn-sm mt-2" onclick="addOption()">
-                                <i class="bi bi-plus-lg"></i> Add Option
-                            </button>
+                            <div class="form-text">Enter at least two options</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="correct_answer" class="form-label">Correct Answer</label>
+                            <select class="form-select" id="correct_answer" name="correct_answer">
+                                <?php for ($i = 0; $i < 4; $i++): ?>
+                                    <option value="<?php echo $i; ?>">Option <?php echo chr(65 + $i); ?></option>
+                                <?php endfor; ?>
+                            </select>
                         </div>
                     </div>
 
-                    <!-- Coding Fields -->
-                    <div id="codingFields" style="display: none;">
+                    <!-- Coding Question Options -->
+                    <div id="codingOptions" style="display: none;">
                         <div class="mb-3">
-                            <label for="coding_template" class="form-label">Code Snippet</label>
-                            <textarea class="form-control font-monospace" id="coding_template" name="coding_template" rows="3" placeholder="Example:
-function sayHello() {
-    console.log('Hello World'   // Missing semicolon here
-"></textarea>
-                            <div class="form-text">Provide the code snippet with missing syntax elements (semicolons, brackets, etc.)</div>
+                            <label for="coding_template" class="form-label">Code Template</label>
+                            <textarea class="form-control font-monospace" id="coding_template" name="coding_template" rows="6" 
+                                    placeholder="Enter the code template with missing parts..."></textarea>
+                            <div class="form-text">The code template that students need to complete</div>
                         </div>
 
                         <div class="mb-3">
-                            <label for="solution" class="form-label">Correct Answer</label>
-                            <textarea class="form-control font-monospace" id="solution" name="solution" rows="3" placeholder="Example:
-function sayHello() {
-    console.log('Hello World');
-}"></textarea>
+                            <label for="solution" class="form-label">Solution</label>
+                            <textarea class="form-control font-monospace" id="solution" name="solution" rows="6" 
+                                    placeholder="Enter the complete solution..."></textarea>
                             <div class="form-text">The complete code with correct syntax</div>
-                        </div>
-
-                        <div class="mb-3">
-                            <label for="explanation" class="form-label">Explanation</label>
-                            <textarea class="form-control" id="explanation" name="explanation" rows="3" placeholder="Example: The code was missing a semicolon after the console.log statement and a closing curly brace for the function."></textarea>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label for="explanation" class="form-label">Explanation (Optional)</label>
-                        <textarea class="form-control" id="explanation" name="explanation" rows="3"></textarea>
+                        <textarea class="form-control" id="explanation" name="explanation" rows="3" 
+                                placeholder="Enter explanation for the correct answer..."></textarea>
+                        <div class="form-text">Provide an explanation for why the answer is correct</div>
                     </div>
                 </div>
-                
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-primary">Add Question</button>
                 </div>
             </form>
@@ -310,141 +387,62 @@ function sayHello() {
 </div>
 
 <script>
-// Question type fields toggle
+// Form validation
+(function () {
+    'use strict'
+    var forms = document.querySelectorAll('.needs-validation')
+    Array.prototype.slice.call(forms).forEach(function (form) {
+        form.addEventListener('submit', function (event) {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+
+// Question type toggle
 document.getElementById('question_type').addEventListener('change', function() {
-    const multipleChoiceFields = document.getElementById('multipleChoiceFields')
-    const codingFields = document.getElementById('codingFields')
-    const testCases = document.getElementById('test_cases')
-    const options = document.querySelectorAll('input[name="options[]"]')
-    const correctAnswer = document.querySelectorAll('input[name="correct_answer"]')
-    
-    // Remove required attributes from all fields first
-    testCases?.removeAttribute('required')
-    options.forEach(opt => opt.removeAttribute('required'))
-    correctAnswer.forEach(radio => radio.removeAttribute('required'))
+    const multipleChoiceOptions = document.getElementById('multipleChoiceOptions')
+    const codingOptions = document.getElementById('codingOptions')
     
     if (this.value === 'multiple_choice') {
-        multipleChoiceFields.style.display = 'block'
-        codingFields.style.display = 'none'
-        // Add required to multiple choice fields
-        options.forEach(opt => opt.setAttribute('required', ''))
-        correctAnswer[0].setAttribute('required', '')
+        multipleChoiceOptions.style.display = 'block'
+        codingOptions.style.display = 'none'
     } else if (this.value === 'coding') {
-        multipleChoiceFields.style.display = 'none'
-        codingFields.style.display = 'block'
-        // Add required to coding fields
-        document.getElementById('coding_template').setAttribute('required', '')
+        multipleChoiceOptions.style.display = 'none'
+        codingOptions.style.display = 'block'
     } else {
-        multipleChoiceFields.style.display = 'none'
-        codingFields.style.display = 'none'
+        multipleChoiceOptions.style.display = 'none'
+        codingOptions.style.display = 'none'
     }
 })
 
-// Multiple choice options management
-let optionCount = 1
-
-function addOption() {
-    optionCount++
-    const container = document.getElementById('optionsContainer')
-    const div = document.createElement('div')
-    div.className = 'input-group mb-2'
-    div.innerHTML = `
-        <div class="input-group-text">
-            <input type="radio" name="correct_answer" value="${optionCount - 1}">
-        </div>
-        <input type="text" class="form-control" name="options[]" placeholder="Option ${optionCount}" required>
-        <button type="button" class="btn btn-outline-danger" onclick="removeOption(this)">
-            <i class="bi bi-trash"></i>
-        </button>
-    `
-    container.appendChild(div)
-}
-
-function removeOption(button) {
-    if (document.getElementById('optionsContainer').children.length > 1) {
-        button.parentElement.remove()
-        updateOptionNumbers()
-    }
-}
-
-function updateOptionNumbers() {
-    const options = document.getElementById('optionsContainer').children
-    Array.from(options).forEach((option, index) => {
-        option.querySelector('input[type="radio"]').value = index
-        option.querySelector('input[type="text"]').placeholder = `Option ${index + 1}`
-    })
-    optionCount = options.length
-}
-
-// Form validation and submission
+// Form submission validation
 document.getElementById('addQuestionForm').addEventListener('submit', function(event) {
-    event.preventDefault()
-    
     const questionType = this.question_type.value
     
-    // Validate question text
-    if (!this.question_text.value.trim()) {
-        alert('Please enter the question text')
-        return
-    }
-
-    // Validate question type
-    if (!questionType) {
-        alert('Please select a question type')
-        return
-    }
-
-    // Validate points
-    if (!this.points.value || this.points.value < 1) {
-        alert('Please enter valid points')
-        return
-    }
-
-    // Additional validation for multiple choice
     if (questionType === 'multiple_choice') {
-        const options = this.querySelectorAll('input[name="options[]"]')
-        const validOptions = Array.from(options).filter(opt => opt.value.trim() !== '')
-        if (validOptions.length < 2) {
-            alert('Please add at least two options')
+        // Validate multiple choice options
+        const options = Array.from(this.querySelectorAll('input[name="options[]"]'))
+            .map(input => input.value.trim())
+            .filter(value => value !== '')
+        
+        if (options.length < 2) {
+            event.preventDefault()
+            alert('Please enter at least two options for multiple choice questions')
             return
         }
-        if (!this.querySelector('input[name="correct_answer"]:checked')) {
-            alert('Please select the correct answer')
+    } else if (questionType === 'coding') {
+        // Validate coding template
+        if (!this.coding_template.value.trim()) {
+            event.preventDefault()
+            alert('Please enter a code template for coding questions')
             return
         }
     }
-
-    // Additional validation for coding
-    if (questionType === 'coding' && !this.coding_template.value.trim()) {
-        alert('Please add the code snippet')
-        return
-    }
-
-    // Submit the form
-    this.submit()
 })
-
-// Reset form when modal is closed
-document.getElementById('addQuestionModal').addEventListener('hidden.bs.modal', function () {
-    const form = document.getElementById('addQuestionForm')
-    form.reset()
-    
-    // Reset options container to initial state
-    const container = document.getElementById('optionsContainer')
-    while (container.children.length > 1) {
-        container.removeChild(container.lastChild)
-    }
-    optionCount = 1
-    updateOptionNumbers()
-    
-    // Reset question type fields
-    document.getElementById('question_type').dispatchEvent(new Event('change'))
-})
-
-// Set initial question type based on exam type
-document.getElementById('question_type').dispatchEvent(new Event('change'))
 </script>
 
-<?php
-admin_footer();
-?>
+<?php admin_footer(); ?>

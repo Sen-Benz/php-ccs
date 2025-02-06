@@ -10,7 +10,7 @@ $user = $auth->getCurrentUser();
 
 // Get applicant ID
 $query = "SELECT id FROM applicants WHERE user_id = ?";
-$stmt = $exam->conn->prepare($query);
+$stmt = $exam->getConnection()->prepare($query);
 $stmt->execute([$user['id']]);
 $applicant = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -35,7 +35,7 @@ switch($action) {
             
             // Update applicant progress
             $query = "UPDATE applicants SET progress_status = ? WHERE id = ?";
-            $stmt = $exam->conn->prepare($query);
+            $stmt = $exam->getConnection()->prepare($query);
             $stmt->execute([
                 $result['status'] === 'pass' ? 'part1_completed' : 'failed',
                 $applicant['id']
@@ -43,14 +43,14 @@ switch($action) {
         } else {
             // For coding exam, mark it as completed but needs manual review
             $query = "UPDATE applicants SET progress_status = 'part2_completed' WHERE id = ?";
-            $stmt = $exam->conn->prepare($query);
+            $stmt = $exam->getConnection()->prepare($query);
             $stmt->execute([$applicant['id']]);
             
             // Create a notification for admin review
             $query = "INSERT INTO notifications (user_id, title, message, type) 
                      SELECT id, 'Coding Exam Submitted', 'A new coding exam needs review', 'exam_review'
                      FROM users WHERE role IN ('admin', 'super_admin')";
-            $stmt = $exam->conn->prepare($query);
+            $stmt = $exam->getConnection()->prepare($query);
             $stmt->execute();
         }
         

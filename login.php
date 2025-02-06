@@ -1,45 +1,56 @@
 <?php
+require_once 'middleware/SessionManager.php';
 require_once 'classes/Auth.php';
-require_once 'config/database.php';
 
+SessionManager::start();
 $auth = new Auth();
-$error = '';
 
-if($_SERVER['REQUEST_METHOD'] === 'POST') {
+// Clear any existing session if accessing login page directly
+if ($_SERVER['REQUEST_METHOD'] !== 'POST' && $auth->isLoggedIn()) {
+    $auth->logout();
+}
+
+$error = '';
+$success = '';
+
+// Process login
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
     $selected_role = $_POST['role'] ?? '';
     
-    // Verify that the user exists with the selected role
-    $database = new Database();
-    $conn = $database->getConnection();
-    
-    $query = "SELECT id FROM users WHERE email = ? AND role = ?";
-    $stmt = $conn->prepare($query);
-    $stmt->execute([$email, $selected_role]);
-    
-    if($stmt->rowCount() === 0) {
-        $error = 'Invalid credentials for selected role';
+    if (empty($email) || empty($password) || empty($selected_role)) {
+        $error = 'All fields are required';
     } else {
         $result = $auth->login($email, $password);
         
-        if($result['success']) {
-            // Redirect based on role
-            switch($result['role']) {
-                case 'super_admin':
-                    header('Location: admin/super/dashboard.php');
-                    break;
-                case 'admin':
-                    header('Location: admin/dashboard.php');
-                    break;
-                case 'applicant':
-                    header('Location: applicant/dashboard.php');
-                    break;
+        if ($result['success']) {
+            $user = $auth->getCurrentUser();
+            if ($user && $user['role'] === $selected_role) {
+                // Redirect to intended URL if set
+                if (isset($_SESSION['intended_url'])) {
+                    $url = $_SESSION['intended_url'];
+                    unset($_SESSION['intended_url']);
+                    header("Location: $url");
+                    exit();
+                }
+                
+                // Otherwise redirect to appropriate dashboard
+                switch ($user['role']) {
+                    case 'super_admin':
+                        header('Location: /php-ccs/admin/super/dashboard.php');
+                        break;
+                    case 'admin':
+                        header('Location: /php-ccs/admin/dashboard.php');
+                        break;
+                    case 'applicant':
+                        header('Location: /php-ccs/applicant/dashboard.php');
+                        break;
+                }
+                exit();
             }
-            exit();
-        } else {
-            $error = $result['message'];
         }
+        $error = 'Invalid credentials or role';
     }
 }
 ?>
@@ -103,19 +114,19 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             border-color: #0d6efd;
             background-color: #f8f9fa;
         }
+        .role-card .card-body {
+            padding: 20px;
+            text-align: center;
+        }
         .role-icon {
-            font-size: 2.5rem;
-            margin-bottom: 15px;
+            font-size: 2rem;
+            margin-bottom: 10px;
             color: #0d6efd;
         }
-        .login-form {
-            display: none;
-        }
-        .login-form.active {
-            display: block;
-        }
-        #roleSelection {
-            margin-bottom: 30px;
+        .error-message {
+            color: #dc3545;
+            margin-bottom: 15px;
+            text-align: center;
         }
     </style>
 </head>
@@ -126,134 +137,90 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <!-- Add your school logo here -->
                 <img src="assets/images/logo.png" alt="School Logo" class="school-logo">
                 <h4 class="mb-0">CCS Freshman Screening</h4>
-                <p class="mb-0">Login to your Account</p>
+                <p class="mb-0">Sign in to continue</p>
             </div>
             <div class="card-body p-4">
                 <?php if($error): ?>
-                    <div class="alert alert-danger"><?php echo htmlspecialchars($error); ?></div>
+                    <div class="error-message"><?php echo htmlspecialchars($error); ?></div>
                 <?php endif; ?>
-                
-                <!-- Role Selection Cards -->
-                <div id="roleSelection">
-                    <h5 class="text-center mb-4">Select Your Role</h5>
-                    <div class="row justify-content-center">
-                        <div class="col-md-4">
-                            <div class="card role-card text-center p-4" data-role="applicant">
-                                <div class="role-icon">
-                                    <i class="bi bi-person-circle"></i>
-                                </div>
-                                <h5>Applicant</h5>
-                                <p class="text-muted small">Login as a CCS applicant</p>
+
+                <div class="row" id="roleSelection">
+                    <div class="col-md-4">
+                        <div class="card role-card" data-role="admin">
+                            <div class="card-body">
+                                <i class="bi bi-person-workspace role-icon"></i>
+                                <h5 class="card-title">Admin</h5>
+                                <p class="card-text">System administrators</p>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="card role-card text-center p-4" data-role="admin">
-                                <div class="role-icon">
-                                    <i class="bi bi-person-badge"></i>
-                                </div>
-                                <h5>Admin</h5>
-                                <p class="text-muted small">Login as an administrator</p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card role-card" data-role="applicant">
+                            <div class="card-body">
+                                <i class="bi bi-person-badge role-icon"></i>
+                                <h5 class="card-title">Applicant</h5>
+                                <p class="card-text">New student applicants</p>
                             </div>
                         </div>
-                        <div class="col-md-4">
-                            <div class="card role-card text-center p-4" data-role="super_admin">
-                                <div class="role-icon">
-                                    <i class="bi bi-person-badge-fill"></i>
-                                </div>
-                                <h5>Super Admin</h5>
-                                <p class="text-muted small">Login as a super administrator</p>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card role-card" data-role="super_admin">
+                            <div class="card-body">
+                                <i class="bi bi-shield-lock role-icon"></i>
+                                <h5 class="card-title">Super Admin</h5>
+                                <p class="card-text">System superusers</p>
                             </div>
                         </div>
                     </div>
                 </div>
-                
-                <!-- Login Form (Initially Hidden) -->
-                <form method="POST" action="" class="login-form needs-validation" novalidate>
+
+                <form method="POST" class="login-form mt-4" style="display: none;">
                     <input type="hidden" name="role" id="selectedRole">
-                    
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <label for="email" class="form-label">Email address</label>
-                        <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="bi bi-envelope"></i>
-                            </span>
-                            <input type="email" class="form-control" id="email" name="email" required>
-                        </div>
+                        <input type="email" class="form-control" id="email" name="email" required>
                     </div>
-                    
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <label for="password" class="form-label">Password</label>
-                        <div class="input-group">
-                            <span class="input-group-text">
-                                <i class="bi bi-lock"></i>
-                            </span>
-                            <input type="password" class="form-control" id="password" name="password" required>
-                        </div>
+                        <input type="password" class="form-control" id="password" name="password" required>
                     </div>
-                    
-                    <button type="submit" class="btn btn-primary">
-                        <i class="bi bi-box-arrow-in-right me-2"></i>Login
-                    </button>
-                    
-                    <button type="button" class="btn btn-link d-block w-100 mt-2" id="backToRoles">
-                        <i class="bi bi-arrow-left me-2"></i>Back to Role Selection
-                    </button>
+                    <button type="submit" class="btn btn-primary">Sign In</button>
+                    <div class="text-center mt-3">
+                        <a href="#" class="btn btn-link" id="backToRoles">← Back to role selection</a>
+                    </div>
                 </form>
-                
+
                 <div class="text-center mt-4">
                     <p class="mb-0">Don't have an account? <a href="register.php">Register here</a></p>
                 </div>
             </div>
         </div>
-        
-        <div class="text-center mt-3 text-muted">
-            <small>&copy; <?php echo date('Y'); ?> Eulogio "Amang" Rodriguez Institute of Science and Technology</small>
-        </div>
     </div>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const roleCards = document.querySelectorAll('.role-card');
-        const loginForm = document.querySelector('.login-form');
-        const roleSelection = document.getElementById('roleSelection');
-        const selectedRoleInput = document.getElementById('selectedRole');
-        const backToRoles = document.getElementById('backToRoles');
-        
-        roleCards.forEach(card => {
-            card.addEventListener('click', function() {
-                const role = this.dataset.role;
-                selectedRoleInput.value = role;
-                
-                // Hide role selection and show login form
-                roleSelection.style.display = 'none';
-                loginForm.classList.add('active');
-                
-                // Update form title based on selected role
-                const roleTitle = this.querySelector('h5').textContent;
-                document.querySelector('.card-header p').textContent = `Login as ${roleTitle}`;
+        document.addEventListener('DOMContentLoaded', function() {
+            const roleCards = document.querySelectorAll('.role-card');
+            const loginForm = document.querySelector('.login-form');
+            const roleSelection = document.getElementById('roleSelection');
+            const selectedRoleInput = document.getElementById('selectedRole');
+            const backToRoles = document.getElementById('backToRoles');
+            
+            roleCards.forEach(card => {
+                card.addEventListener('click', function() {
+                    const role = this.dataset.role;
+                    selectedRoleInput.value = role;
+                    roleSelection.style.display = 'none';
+                    loginForm.style.display = 'block';
+                });
+            });
+            
+            backToRoles.addEventListener('click', function(e) {
+                e.preventDefault();
+                loginForm.style.display = 'none';
+                roleSelection.style.display = 'flex';
             });
         });
-        
-        backToRoles.addEventListener('click', function() {
-            // Show role selection and hide login form
-            roleSelection.style.display = 'block';
-            loginForm.classList.remove('active');
-            document.querySelector('.card-header p').textContent = 'Login to your Account';
-        });
-        
-        // Form validation
-        const forms = document.querySelectorAll('.needs-validation');
-        Array.prototype.slice.call(forms).forEach(function(form) {
-            form.addEventListener('submit', function(event) {
-                if (!form.checkValidity()) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                }
-                form.classList.add('was-validated');
-            }, false);
-        });
-    });
     </script>
 </body>
 </html>
