@@ -26,17 +26,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         
         if ($result['success']) {
             $user = $auth->getCurrentUser();
-            if ($user && $user['role'] === $selected_role) {
-                // Redirect to intended URL if set
-                if (isset($_SESSION['intended_url'])) {
-                    $url = $_SESSION['intended_url'];
-                    unset($_SESSION['intended_url']);
-                    header("Location: $url");
-                    exit();
-                }
-                
-                // Otherwise redirect to appropriate dashboard
-                switch ($user['role']) {
+            
+            if (!$user) {
+                $error = 'Failed to retrieve user information';
+            } elseif ($user['actual_role'] !== $selected_role) {
+                $error = 'Invalid role selected for this account';
+                $auth->logout();
+            } else {
+                // Log successful login with role
+                $database = Database::getInstance();
+                $conn = $database->getConnection();
+                $stmt = $conn->prepare("INSERT INTO activity_logs (user_id, action, details) VALUES (?, 'login', ?)");
+                $stmt->execute([$user['id'], "User logged in as {$selected_role}"]);
+
+                // Redirect based on role
+                switch ($selected_role) {
                     case 'super_admin':
                         header('Location: /php-ccs/admin/super/dashboard.php');
                         break;
@@ -46,11 +50,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     case 'applicant':
                         header('Location: /php-ccs/applicant/dashboard.php');
                         break;
+                    default:
+                        $error = 'Invalid role type';
+                        $auth->logout();
                 }
-                exit();
+                if (empty($error)) {
+                    exit();
+                }
             }
+        } else {
+            $error = $result['message'];
         }
-        $error = 'Invalid credentials or role';
     }
 }
 ?>

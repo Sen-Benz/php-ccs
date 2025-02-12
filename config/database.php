@@ -1,20 +1,20 @@
 <?php
-require_once __DIR__ . '/../vendor/autoload.php';
-
 class Database {
     private static $instance = null;
     private $connection;
 
     private function __construct() {
-        $dotenv = Dotenv\Dotenv::createImmutable(__DIR__ . '/..');
-        $dotenv->load();
-
-        $this->connection = new PDO(
-            "mysql:host={$_ENV['DB_HOST']};dbname={$_ENV['DB_NAME']}",
-            $_ENV['DB_USER'],
-            $_ENV['DB_PASS'],
-            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]
-        );
+        try {
+            $this->connection = new PDO(
+                "mysql:host=localhost;dbname=ccs_screening",
+                "root",
+                ""
+            );
+            $this->connection->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+            $this->connection->setAttribute(PDO::ATTR_DEFAULT_FETCH_MODE, PDO::FETCH_ASSOC);
+        } catch(PDOException $e) {
+            die("Connection failed: " . $e->getMessage());
+        }
     }
 
     public static function getInstance() {
@@ -27,5 +27,21 @@ class Database {
     public function getConnection() {
         return $this->connection;
     }
+
+    public function query($sql, $params = []) {
+        $stmt = $this->connection->prepare($sql);
+        $stmt->execute($params);
+        return $stmt;
+    }
+
+    public function prepare($sql) {
+        return $this->connection->prepare($sql);
+    }
+
+    // Prevent cloning of the instance
+    private function __clone() {}
+
+    // Prevent unserializing of the instance
+    private function __wakeup() {}
 }
 ?>

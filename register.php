@@ -20,7 +20,7 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         try {
             // Generate applicant number
-            $database = new Database();
+            $database = Database::getInstance();
             $conn = $database->getConnection();
             
             // Get the current year
@@ -38,25 +38,35 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             $sequence = ($result['max_num'] ?? 0) + 1;
             $applicant_number = $year . str_pad($sequence, 4, '0', STR_PAD_LEFT);
             
-            // Register the user
-            $result = $auth->register($email, $password);
+            // Start transaction
+            $conn->beginTransaction();
             
-            if($result['success']) {
-                // Add applicant details
-                $query = "INSERT INTO applicants (user_id, applicant_number, first_name, last_name, contact_number, preferred_course, progress_status) 
-                         VALUES (?, ?, ?, ?, ?, ?, 'registered')";
-                $stmt = $conn->prepare($query);
+            try {
+                // Register the user
+                $result = $auth->register($email, $password);
                 
-                if($stmt->execute([$result['user_id'], $applicant_number, $first_name, $last_name, $contact_number, $preferred_course])) {
-                    $success = 'Registration successful! Your applicant number is ' . $applicant_number . '. Please wait for admin approval before logging in.';
+                if($result['success']) {
+                    // Add applicant details
+                    $query = "INSERT INTO applicants (user_id, applicant_number, first_name, last_name, contact_number, preferred_course, progress_status) 
+                             VALUES (?, ?, ?, ?, ?, ?, 'registered')";
+                    $stmt = $conn->prepare($query);
+                    
+                    if($stmt->execute([$result['user_id'], $applicant_number, $first_name, $last_name, $contact_number, $preferred_course])) {
+                        $conn->commit();
+                        $success = 'Registration successful! Your applicant number is ' . $applicant_number . '. Please wait for admin approval before logging in.';
+                    } else {
+                        throw new Exception('Failed to save applicant details');
+                    }
                 } else {
-                    $error = 'Failed to save applicant details';
+                    throw new Exception($result['message']);
                 }
-            } else {
-                $error = $result['message'];
+            } catch (Exception $e) {
+                $conn->rollBack();
+                throw $e;
             }
-        } catch (PDOException $e) {
-            $error = 'Database error: ' . $e->getMessage();
+        } catch (Exception $e) {
+            error_log("Registration error: " . $e->getMessage());
+            $error = 'Registration failed: ' . $e->getMessage();
         }
     }
 }
