@@ -1,7 +1,9 @@
 <?php
+require_once '../../config/config.php';
 require_once '../../middleware/SessionManager.php';
 require_once '../../classes/Auth.php';
 require_once '../../config/Database.php';
+require_once '../includes/admin_layout.php'; // Add this line to include admin layout functions
 
 // Start session first
 SessionManager::start();
@@ -26,9 +28,9 @@ try {
     $error = '';
     $success = '';
 
+    
     try {
-        $database = new Database();
-        $conn = $database->getConnection();
+        $conn = Database::getInstance()->getConnection();
 
         // Get statistics
         $stats = [

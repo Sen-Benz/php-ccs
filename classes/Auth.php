@@ -17,18 +17,20 @@ class Auth {
         try {
             // First check if user exists with given email
             $stmt = $this->conn->prepare("
-                SELECT u.*, 
-                       CASE 
-                           WHEN sa.user_id IS NOT NULL THEN 'super_admin'
-                           WHEN a.user_id IS NOT NULL THEN 'admin'
-                           ELSE u.role 
-                       END as actual_role
+                SELECT 
+                    u.*,
+                    CASE 
+                        WHEN sa.user_id IS NOT NULL THEN 'super_admin'
+                        WHEN a.user_id IS NOT NULL THEN 'admin'
+                        ELSE u.role 
+                    END as role_type
                 FROM users u
                 LEFT JOIN super_admins sa ON u.id = sa.user_id
                 LEFT JOIN admins a ON u.id = a.user_id
                 WHERE u.email = ? 
                 LIMIT 1
             ");
+            
             $stmt->execute([$email]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
             
@@ -49,7 +51,7 @@ class Auth {
             
             // Set session data
             $_SESSION['user_id'] = $user['id'];
-            $_SESSION['user_role'] = $user['actual_role'];
+            $_SESSION['user_role'] = $user['role_type'];
             $_SESSION['user_email'] = $user['email'];
             $_SESSION['LAST_ACTIVITY'] = time();
             
@@ -58,7 +60,12 @@ class Auth {
             
             return [
                 'success' => true,
-                'role' => $user['actual_role']
+                'role' => $user['role_type'],
+                'user' => [
+                    'id' => $user['id'],
+                    'email' => $user['email'],
+                    'role' => $user['role_type']
+                ]
             ];
         } catch (Exception $e) {
             error_log("Login error: " . $e->getMessage());
@@ -117,12 +124,13 @@ class Auth {
 
         try {
             $stmt = $this->conn->prepare("
-                SELECT u.*, 
-                       CASE 
-                           WHEN sa.user_id IS NOT NULL THEN 'super_admin'
-                           WHEN a.user_id IS NOT NULL THEN 'admin'
-                           ELSE u.role 
-                       END as actual_role
+                SELECT 
+                    u.*,
+                    CASE 
+                        WHEN sa.user_id IS NOT NULL THEN 'super_admin'
+                        WHEN a.user_id IS NOT NULL THEN 'admin'
+                        ELSE u.role 
+                    END as role_type
                 FROM users u
                 LEFT JOIN super_admins sa ON u.id = sa.user_id
                 LEFT JOIN admins a ON u.id = a.user_id
@@ -132,7 +140,7 @@ class Auth {
             $stmt->execute([$_SESSION['user_id']]);
             $user = $stmt->fetch();
 
-            if (!$user || !in_array($user['actual_role'], $roles)) {
+            if (!$user || !in_array($user['role_type'], $roles)) {
                 $this->logout();
                 $_SESSION['error'] = 'Access denied. Please log in with appropriate credentials.';
                 header('Location: /php-ccs/login.php');
@@ -185,12 +193,13 @@ class Auth {
 
         try {
             $stmt = $this->conn->prepare("
-                SELECT u.*, 
-                       CASE 
-                           WHEN sa.user_id IS NOT NULL THEN 'super_admin'
-                           WHEN a.user_id IS NOT NULL THEN 'admin'
-                           ELSE u.role 
-                       END as actual_role
+                SELECT 
+                    u.*,
+                    CASE 
+                        WHEN sa.user_id IS NOT NULL THEN 'super_admin'
+                        WHEN a.user_id IS NOT NULL THEN 'admin'
+                        ELSE u.role 
+                    END as role_type
                 FROM users u
                 LEFT JOIN super_admins sa ON u.id = sa.user_id
                 LEFT JOIN admins a ON u.id = a.user_id
@@ -198,7 +207,13 @@ class Auth {
                 LIMIT 1
             ");
             $stmt->execute([$_SESSION['user_id']]);
-            return $stmt->fetch();
+            $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            if ($user) {
+                $user['role'] = $user['role_type'];
+            }
+            
+            return $user;
         } catch (Exception $e) {
             error_log("Get current user error: " . $e->getMessage());
             return null;

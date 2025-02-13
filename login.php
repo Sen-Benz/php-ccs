@@ -25,37 +25,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $result = $auth->login($email, $password);
         
         if ($result['success']) {
-            $user = $auth->getCurrentUser();
+            $user = $result['user'];
             
             if (!$user) {
                 $error = 'Failed to retrieve user information';
-            } elseif ($user['actual_role'] !== $selected_role) {
+            } elseif ($user['role'] !== $selected_role) {
                 $error = 'Invalid role selected for this account';
                 $auth->logout();
             } else {
-                // Log successful login with role
-                $database = Database::getInstance();
-                $conn = $database->getConnection();
-                $stmt = $conn->prepare("INSERT INTO activity_logs (user_id, action, details) VALUES (?, 'login', ?)");
-                $stmt->execute([$user['id'], "User logged in as {$selected_role}"]);
-
                 // Redirect based on role
                 switch ($selected_role) {
                     case 'super_admin':
                         header('Location: /php-ccs/admin/super/dashboard.php');
-                        break;
+                        exit();
                     case 'admin':
                         header('Location: /php-ccs/admin/dashboard.php');
-                        break;
+                        exit();
                     case 'applicant':
                         header('Location: /php-ccs/applicant/dashboard.php');
-                        break;
+                        exit();
                     default:
                         $error = 'Invalid role type';
                         $auth->logout();
-                }
-                if (empty($error)) {
-                    exit();
                 }
             }
         } else {

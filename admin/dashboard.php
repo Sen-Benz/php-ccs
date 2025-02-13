@@ -7,11 +7,10 @@ require_once './includes/admin_layout.php';
 // Initialize Auth and Database
 $auth = new Auth();
 $auth->requireRole('admin');
-$db = Database::getInstance();
+$db = Database::getInstance()->getConnection();
 
 // Get current user
 $user = $auth->getCurrentUser();
-
 // Get today's interviews
 $today_interviews = 0;
 $today_query = "SELECT COUNT(*) as count FROM interviews WHERE DATE(schedule) = CURDATE()";
