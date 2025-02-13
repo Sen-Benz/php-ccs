@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../classes/Auth.php';
-require_once __DIR__ . '/../../includes/utils.php';
+require_once __DIR__ . '/../../includes/utilities.php';
 
 global $auth;
 if (!isset($auth)) {

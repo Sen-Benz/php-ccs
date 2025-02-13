@@ -3,7 +3,7 @@ require_once '../../config/config.php';
 require_once '../../middleware/SessionManager.php';
 require_once '../../classes/Auth.php';
 require_once '../../config/Database.php';
-require_once '../includes/admin_layout.php'; // Add this line to include admin layout functions
+require_once '../includes/layout.php'; 
 
 // Start session first
 SessionManager::start();
