@@ -3,7 +3,7 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../classes/Email.php';
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();;
     $conn = $database->getConnection();
 
     // Get interviews scheduled for tomorrow

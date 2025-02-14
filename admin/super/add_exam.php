@@ -11,7 +11,7 @@ $success = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        $database = new Database();
+        $database = Database::getInstance();;
         $conn = $database->getConnection();
 
         $title = $_POST['title'] ?? '';

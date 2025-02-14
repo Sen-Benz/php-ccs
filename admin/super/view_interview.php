@@ -60,7 +60,7 @@ $categories = [
 ];
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();;
     $conn = $database->getConnection();
 
     $interview_id = $_GET['id'] ?? null;

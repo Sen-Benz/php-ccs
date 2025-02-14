@@ -9,7 +9,7 @@ $auth->requireRole('applicant');
 $user = $auth->getCurrentUser();
 
 // Get applicant's submitted requirements
-$database = new Database();
+$database = Database::getInstance();;
 $conn = $database->getConnection();
 
 $query = "SELECT r.*, ar.status, ar.submitted_at, ar.notes 

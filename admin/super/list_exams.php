@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = $_POST['action'];
 
         try {
-            $database = new Database();
+            $database = Database::getInstance();
             $conn = $database->getConnection();
 
             switch ($action) {
@@ -58,7 +58,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $examsByPart = [];
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();
     $conn = $database->getConnection();
 
     $query = "SELECT e.*, 
@@ -93,7 +93,7 @@ admin_header($page_title);
 
 <div class="wrapper">
     <!-- Sidebar -->
-    <?php include '../includes/sidebar.php'; ?>
+    <?php include_once '../includes/sidebar.php'; ?>
 
     <!-- Page Content -->
     <div class="page-content-wrapper">

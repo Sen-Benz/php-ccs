@@ -25,7 +25,7 @@ if (!$exam_id || empty($answers)) {
 }
 
 try {
-    $db = new Database();
+    $db = Database::getInstance();;
     
     // Start transaction
     $db->beginTransaction();

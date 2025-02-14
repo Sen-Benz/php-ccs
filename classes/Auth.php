@@ -75,41 +75,56 @@ class Auth {
 
     public function register($email, $password, $role = 'applicant') {
         try {
+            error_log("DEBUG: Checking active transaction...");
+    
+            if (!$this->conn->inTransaction()) {
+                error_log("DEBUG: No active transaction, starting one now.");
+                $this->conn->beginTransaction();
+            }
+    
             // Check if email already exists
             $stmt = $this->conn->prepare("SELECT id FROM users WHERE email = ?");
             $stmt->execute([$email]);
-            
-            if($stmt->rowCount() > 0) {
+            if ($stmt->rowCount() > 0) {
+                error_log("DEBUG: Email already exists. Aborting registration.");
                 return ['success' => false, 'message' => 'Email already exists'];
             }
-
-            // Start transaction
-            $this->conn->beginTransaction();
-
+    
             // Insert new user
             $stmt = $this->conn->prepare("
                 INSERT INTO users (email, password, role, status) 
                 VALUES (?, ?, ?, ?)
             ");
-            
+    
             $hashed_password = password_hash($password, PASSWORD_DEFAULT);
             $status = ($role === 'applicant') ? 'pending' : 'active';
-            
+    
             $stmt->execute([$email, $hashed_password, $role, $status]);
             $userId = $this->conn->lastInsertId();
-
+    
             // Log the registration
             $this->logActivity($userId, 'register', 'New user registration');
-
+    
             $this->conn->commit();
+            error_log("DEBUG: Registration successful. Returning success response.");
+    
+            // ✅ Ensure successful registration does not reach catch
             return ['success' => true, 'user_id' => $userId];
-
+    
         } catch (Exception $e) {
-            $this->conn->rollBack();
-            error_log("Registration error: " . $e->getMessage());
-            return ['success' => false, 'message' => 'Registration failed. Please try again later.'];
+            error_log("DEBUG: Caught exception in catch block: " . $e->getMessage());
+    
+            if ($this->conn->inTransaction()) {
+                $this->conn->rollBack();
+                error_log("DEBUG: Transaction rolled back.");
+            } else {
+                error_log("DEBUG: No active transaction to roll back!");
+            }
+    
+            return ['success' => false, 'message' => "Error: " . $e->getMessage()];
         }
     }
+    
 
     public function requireRole($roles) {
         if (!is_array($roles)) {
@@ -169,7 +184,7 @@ class Auth {
         session_start();
     }
 
-    private function logActivity($user_id, $action, $details) {
+    public function logActivity($user_id, $action, $details) {
         try {
             $stmt = $this->conn->prepare("
                 INSERT INTO activity_logs (user_id, action, details, ip_address) 

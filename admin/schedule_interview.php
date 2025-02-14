@@ -7,7 +7,7 @@ require_once './includes/layout.php';
 // Initialize Auth and Database
 $auth = new Auth();
 $auth->requireRole('admin');
-$db = new Database();
+$db = Database::getInstance();;
 
 // Get list of applicants who have passed their exams
 try {
@@ -103,7 +103,7 @@ admin_header('Schedule Interview');
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar -->
-        <?php include './includes/sidebar.php'; ?>
+        <?php include_once './includes/sidebar.php'; ?>
 
         <!-- Main Content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">

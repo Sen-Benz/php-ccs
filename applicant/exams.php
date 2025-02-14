@@ -10,7 +10,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
-$db = new Database();
+$db = Database::getInstance();;
 
 // Get exam details if exam_id is provided
 $exam_id = $_GET['exam_id'] ?? null;

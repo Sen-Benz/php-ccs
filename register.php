@@ -6,7 +6,7 @@ $auth = new Auth();
 $error = '';
 $success = '';
 
-if($_SERVER['REQUEST_METHOD'] === 'POST') {
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $email = $_POST['email'] ?? '';
     $password = $_POST['password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
@@ -14,18 +14,21 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
     $last_name = $_POST['last_name'] ?? '';
     $contact_number = $_POST['contact_number'] ?? '';
     $preferred_course = $_POST['preferred_course'] ?? '';
-    
-    if($password !== $confirm_password) {
+
+    if ($password !== $confirm_password) {
         $error = 'Passwords do not match';
     } else {
         try {
-            // Generate applicant number
+            // Get database connection
             $database = Database::getInstance();
             $conn = $database->getConnection();
-            
+
+            // ✅ Log registration attempt
+            error_log("DEBUG: Calling register() for user: $email");
+
             // Get the current year
             $year = date('Y');
-            
+
             // Get the latest applicant number for this year
             $query = "SELECT MAX(CAST(SUBSTRING(applicant_number, 6) AS UNSIGNED)) as max_num 
                      FROM applicants 
@@ -33,39 +36,33 @@ if($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt = $conn->prepare($query);
             $stmt->execute([$year . '%']);
             $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            
+
             // Generate new applicant number
             $sequence = ($result['max_num'] ?? 0) + 1;
             $applicant_number = $year . str_pad($sequence, 4, '0', STR_PAD_LEFT);
-            
-            // Start transaction
-            $conn->beginTransaction();
-            
-            try {
-                // Register the user
-                $result = $auth->register($email, $password);
-                
-                if($result['success']) {
-                    // Add applicant details
-                    $query = "INSERT INTO applicants (user_id, applicant_number, first_name, last_name, contact_number, preferred_course, progress_status) 
-                             VALUES (?, ?, ?, ?, ?, ?, 'registered')";
-                    $stmt = $conn->prepare($query);
-                    
-                    if($stmt->execute([$result['user_id'], $applicant_number, $first_name, $last_name, $contact_number, $preferred_course])) {
-                        $conn->commit();
-                        $success = 'Registration successful! Your applicant number is ' . $applicant_number . '. Please wait for admin approval before logging in.';
-                    } else {
-                        throw new Exception('Failed to save applicant details');
-                    }
+
+            // ✅ Call register() and log response
+            $result = $auth->register($email, $password);
+            error_log("DEBUG: Register() response: " . json_encode($result));
+
+            if ($result['success']) {
+                // ✅ Add applicant details
+                $query = "INSERT INTO applicants (user_id, applicant_number, first_name, last_name, contact_number, preferred_course, progress_status) 
+                         VALUES (?, ?, ?, ?, ?, ?, 'registered')";
+                $stmt = $conn->prepare($query);
+
+                if ($stmt->execute([$result['user_id'], $applicant_number, $first_name, $last_name, $contact_number, $preferred_course])) {
+                    $success = 'Registration successful! Your applicant number is ' . $applicant_number . '. Please wait for admin approval before logging in.';
                 } else {
-                    throw new Exception($result['message']);
+                    throw new Exception('Failed to save applicant details');
                 }
-            } catch (Exception $e) {
-                $conn->rollBack();
-                throw $e;
+            } else {
+                // ✅ Log failed registration attempt
+                error_log("DEBUG: Register() returned failure: " . $result['message']);
+                $error = 'Registration failed: ' . $result['message'];
             }
         } catch (Exception $e) {
-            error_log("Registration error: " . $e->getMessage());
+            error_log("DEBUG: Caught exception in register.php: " . $e->getMessage());
             $error = 'Registration failed: ' . $e->getMessage();
         }
     }

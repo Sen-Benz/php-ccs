@@ -12,7 +12,7 @@ $error = '';
 $success = '';
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();;
     $conn = $database->getConnection();
 } catch(PDOException $e) {
     $error = "Database connection failed: " . $e->getMessage();

@@ -11,7 +11,7 @@ if (!$user || $user['role'] !== 'applicant') {
     exit('Unauthorized');
 }
 
-$db = new Database();
+$db = Database::getInstance();;
 $db->query(
     "UPDATE notifications SET is_read = 1 WHERE user_id = ?",
     [$user['id']]

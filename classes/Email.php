@@ -10,7 +10,7 @@ class Email {
 
         // Initialize database connection
         require_once __DIR__ . '/../config/database.php';
-        $database = new Database();
+        $database = Database::getInstance();;
         $this->db = $database->getConnection();
     }
 

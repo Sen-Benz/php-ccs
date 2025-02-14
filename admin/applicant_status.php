@@ -2,7 +2,7 @@
 require_once '../config/config.php';
 require_once '../classes/Auth.php';
 require_once '../config/database.php';
-require_once './includes/admin_layout.php';
+require_once 'includes/admin_layout.php';
 
 // Initialize Auth and Database
 $auth = new Auth();
@@ -14,6 +14,9 @@ $user = $auth->getCurrentUser();
 
 $page_title = 'Applicant Status';
 admin_header($page_title);
+
+$program_stats = []; // Default value
+$recent_changes = [];
 
 try {
     // Get application statistics with proper joins
@@ -44,19 +47,25 @@ try {
     $recent_changes = $stmt->fetchAll();
 
     // Get status by program with proper totals
+    
     $stmt = $db->query(
         "SELECT 
-            program,
+            preferred_course AS program, 
             COUNT(*) as total,
             SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
             SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
             SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected
-         FROM users 
-         WHERE role = 'applicant' AND program IS NOT NULL
-         GROUP BY program
-         ORDER BY program ASC",
-        []
+         FROM applicants
+         WHERE preferred_course IS NOT NULL
+         GROUP BY preferred_course
+         ORDER BY preferred_course ASC"
     );
+    $program_stats = $stmt->fetchAll();
+    
+    if (empty($program_stats)) {
+        error_log("DEBUG: No data returned for program_stats");
+    }
+
     $program_stats = $stmt->fetchAll();
 
 } catch (Exception $e) {
@@ -69,7 +78,7 @@ try {
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar -->
-        <?php include './includes/sidebar.php'; ?>
+        <?php include_once './includes/sidebar.php'; ?>
 
         <!-- Main Content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">
@@ -178,7 +187,7 @@ try {
                                     <tbody>
                                         <?php foreach ($program_stats as $stat): ?>
                                             <tr>
-                                                <td><?php echo htmlspecialchars($stat['program']); ?></td>
+                                            <td><?php echo isset($stat['program']) ? htmlspecialchars($stat['program']) : 'N/A'; ?></td>
                                                 <td><?php echo $stat['total']; ?></td>
                                                 <td><?php echo $stat['pending']; ?></td>
                                                 <td><?php echo $stat['approved']; ?></td>
@@ -284,4 +293,4 @@ try {
 }
 </style>
 
-<?php get_footer(); ?>
+<?php admin_footer(); ?>

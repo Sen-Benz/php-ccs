@@ -9,7 +9,7 @@ $auth->requireRole('applicant');
 $user = $auth->getCurrentUser();
 
 // Get applicant's interview schedule
-$database = new Database();
+$database = Database::getInstance();;
 $conn = $database->getConnection();
 
 $query = "SELECT i.*, a.first_name, a.last_name, a.preferred_course

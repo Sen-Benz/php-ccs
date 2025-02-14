@@ -22,7 +22,7 @@ $total_pages = 0;
 $total_count = 0;
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();;
     $conn = $database->getConnection();
 
     // First, ensure the columns exist

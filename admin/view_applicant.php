@@ -7,7 +7,8 @@ require_once './includes/layout.php';
 // Initialize Auth and Database
 $auth = new Auth();
 $auth->requireRole('admin');
-$db = new Database();
+$db = Database::getInstance(); // ✅ Corrected: Get instance of Database
+$conn = $db->getConnection(); // ✅ Get the actual PDO connection
 
 // Get applicant ID from URL
 $applicant_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -19,10 +20,8 @@ if (!$applicant_id) {
 
 try {
     // Fetch applicant details
-    $stmt = $db->query(
-        "SELECT * FROM users WHERE id = ? AND role = 'applicant'",
-        [$applicant_id]
-    );
+    $stmt = $conn->prepare("SELECT * FROM users WHERE id = ? AND role = 'applicant'");
+    $stmt->execute([$applicant_id]);
     $applicant = $stmt->fetch();
 
     if (!$applicant) {
@@ -30,23 +29,23 @@ try {
     }
 
     // Fetch exam results
-    $stmt = $db->query(
-        "SELECT er.*, e.exam_title 
-         FROM exam_results er
-         JOIN exams e ON er.exam_id = e.id
-         WHERE er.user_id = ?
-         ORDER BY er.created_at DESC",
-        [$applicant_id]
-    );
+    $stmt = $conn->prepare("
+        SELECT er.*, e.exam_title 
+        FROM exam_results er
+        JOIN exams e ON er.exam_id = e.id
+        WHERE er.user_id = ?
+        ORDER BY er.created_at DESC
+    ");
+    $stmt->execute([$applicant_id]);
     $exam_results = $stmt->fetchAll();
 
     // Fetch interview records
-    $stmt = $db->query(
-        "SELECT * FROM interviews 
-         WHERE user_id = ?
-         ORDER BY schedule DESC",
-        [$applicant_id]
-    );
+    $stmt = $conn->prepare("
+        SELECT * FROM interviews 
+        WHERE user_id = ?
+        ORDER BY schedule DESC
+    ");
+    $stmt->execute([$applicant_id]);
     $interviews = $stmt->fetchAll();
 
     // Handle status update
@@ -54,7 +53,7 @@ try {
         $new_status = $_POST['status'];
         $notes = $_POST['notes'];
         
-        $db->beginTransaction();
+        $conn->beginTransaction();
         try {
             // Update user status
             $db->query(
@@ -68,17 +67,15 @@ try {
                 [$applicant_id, $new_status, $notes, $auth->getCurrentUser()['id']]
             );
 
-            $db->commit();
+            $conn->commit();
             $success = "Applicant status updated successfully.";
             
             // Refresh applicant data
-            $stmt = $db->query(
-                "SELECT * FROM users WHERE id = ? AND role = 'applicant'",
-                [$applicant_id]
-            );
+            $stmt = $conn->prepare("SELECT * FROM users WHERE id = ? AND role = 'applicant'");
+            $stmt->execute([$applicant_id]);
             $applicant = $stmt->fetch();
         } catch (Exception $e) {
-            $db->rollback();
+            $conn->rollback();
             $error = "Failed to update applicant status.";
             error_log("Error updating applicant status: " . $e->getMessage());
         }
@@ -95,7 +92,7 @@ admin_header('View Applicant');
 <div class="container-fluid">
     <div class="row">
         <!-- Sidebar -->
-        <?php include './includes/sidebar.php'; ?>
+        <?php include_once './includes/sidebar.php'; ?>
 
         <!-- Main Content -->
         <main class="col-md-9 ms-sm-auto col-lg-10 px-md-4">

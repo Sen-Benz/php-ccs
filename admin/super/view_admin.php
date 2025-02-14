@@ -5,7 +5,7 @@ require_once '../../config/database.php';
 
 // Initialize Auth and Database
 $auth = new Auth();
-$db = new Database();
+$db = Database::getInstance();;
 
 // Check if user is logged in and is a super admin
 $user = $auth->getCurrentUser();

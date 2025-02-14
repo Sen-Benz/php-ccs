@@ -13,7 +13,7 @@ $success = '';
 // Handle export request
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
-        $database = new Database();
+        $database = Database::getInstance();;
         $conn = $database->getConnection();
 
         $report_type = $_POST['report_type'] ?? '';

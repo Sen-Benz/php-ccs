@@ -27,7 +27,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Passing score must be between 0 and 100';
     } else {
         try {
-            $database = new Database();
+            $database = Database::getInstance();
             $conn = $database->getConnection();
 
             $query = "INSERT INTO exams (title, description, type, part, duration_minutes, passing_score, instructions, status, created_by) 
@@ -58,7 +58,7 @@ admin_header($page_title);
 
 <div class="wrapper">
     <!-- Sidebar -->
-    <?php include '../includes/sidebar.php'; ?>
+    <?php include_once '../includes/sidebar.php'; ?>
 
     <!-- Page Content -->
     <div class="page-content-wrapper">

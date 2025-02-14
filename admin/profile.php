@@ -4,7 +4,7 @@ require_once '../classes/Auth.php';
 require_once '../config/database.php';
 
 $auth = new Auth();
-$db = new Database();
+$db = Database::getInstance();
 
 // Get current user
 $user = $auth->getCurrentUser();
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $success = 'Profile updated successfully';
         
         // Refresh user data
-        $user = $auth->getCurrentUser(true);
+        $user = $auth->getCurrentUser();
     } catch (Exception $e) {
         $error = $e->getMessage();
     }
@@ -79,7 +79,7 @@ admin_header('My Profile');
             <h1 class="h3 mb-0">My Profile</h1>
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb">
-                    <li class="breadcrumb-item"><a href="<?php echo BASE_URL; ?>admin/dashboard.php">Dashboard</a></li>
+                    <li class="breadcrumb-item"><a href="<?php echo BASE_URL; ?>admin/super/dashboard.php">Dashboard</a></li>
                     <li class="breadcrumb-item active" aria-current="page">My Profile</li>
                 </ol>
             </nav>

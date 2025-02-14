@@ -2,7 +2,7 @@
 require_once '../config/database.php';
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();;
     $conn = $database->getConnection();
     
     // Drop and recreate the columns to ensure they are correct

@@ -11,7 +11,7 @@ $error = '';
 $success = '';
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();;
     $conn = $database->getConnection();
 
     $applicant_id = $_GET['id'] ?? null;

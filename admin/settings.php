@@ -4,7 +4,7 @@ require_once '../classes/Auth.php';
 require_once '../config/database.php';
 
 $auth = new Auth();
-$db = new Database();
+$db = Database::getInstance();
 
 // Get current user
 $user = $auth->getCurrentUser();

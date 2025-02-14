@@ -9,7 +9,7 @@ $auth->requireRole('applicant');
 $user = $auth->getCurrentUser();
 
 // Get applicant details
-$database = new Database();
+$database = Database::getInstance();;
 $conn = $database->getConnection();
 
 $query = "SELECT * FROM applicants WHERE user_id = ?";

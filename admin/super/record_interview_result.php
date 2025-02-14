@@ -15,7 +15,7 @@ $success = '';
 $interview_id = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();;
     $conn = $database->getConnection();
 
     // If form is submitted

@@ -13,11 +13,16 @@ $db = Database::getInstance()->getConnection();
 $user = $auth->getCurrentUser();
 // Get today's interviews
 $today_interviews = 0;
-$today_query = "SELECT COUNT(*) as count FROM interviews WHERE DATE(schedule) = CURDATE()";
+$today_query = "SELECT COUNT(*) as count FROM interview_schedules WHERE DATE(schedule_date) = CURDATE()";
 $today_result = $db->query($today_query)->fetch();
 if ($today_result) {
     $today_interviews = $today_result['count'];
 }
+
+$stmt = $db->query("SELECT * FROM users LIMIT 1");
+$test = $stmt->fetch();
+error_log(print_r($test, true));
+
 
 try {
     // Get total applicants
@@ -35,11 +40,12 @@ try {
             e.title as exam_title,
             u.email as applicant_email
          FROM exam_results er
-         JOIN users u ON er.user_id = u.id
+         JOIN users u ON er.applicant_id = u.id  -- ✅ Changed user_id to applicant_id
          JOIN exams e ON er.exam_id = e.id
          ORDER BY er.created_at DESC
          LIMIT 5"
     );
+    
     $recent_results = $stmt->fetchAll();
 
 } catch (Exception $e) {

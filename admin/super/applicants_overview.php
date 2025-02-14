@@ -11,7 +11,7 @@ $error = '';
 $success = '';
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();
     $conn = $database->getConnection();
 
     // Get overall status counts

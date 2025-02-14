@@ -11,7 +11,7 @@ $error = '';
 $success = '';
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();;
     $conn = $database->getConnection();
 
     // Handle applicant approval/rejection
@@ -107,7 +107,7 @@ admin_header($page_title);
 
 <div class="wrapper">
     <!-- Sidebar -->
-    <?php include '../includes/sidebar.php'; ?>
+    <?php include_once '../includes/sidebar.php'; ?>
 
     <!-- Page Content -->
     <div class="page-content-wrapper">

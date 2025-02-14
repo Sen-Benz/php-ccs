@@ -2,7 +2,7 @@
 require_once '../config/database.php';
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();;
     $conn = $database->getConnection();
     
     // Check interview_schedules table structure

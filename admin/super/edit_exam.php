@@ -18,7 +18,7 @@ if (!$exam_id) {
 }
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();
     $conn = $database->getConnection();
 
     // Handle form submission
@@ -52,7 +52,7 @@ try {
                   title = ?, 
                   description = ?, 
                   type = ?, 
-                  duration = ?, 
+                  duration_minutes = ?, 
                   passing_score = ?,
                   part = ?,
                   updated_at = CURRENT_TIMESTAMP 

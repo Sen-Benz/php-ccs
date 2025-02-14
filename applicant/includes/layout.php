@@ -222,7 +222,7 @@ function applicant_header($title = '') {
                             <i class="bx bx-bell fs-4"></i>
                             <?php
                             require_once __DIR__ . '/../../config/database.php';
-                            $db = new Database();
+                            $db = Database::getInstance();;
                             $notifications = $db->query(
                                 "SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0",
                                 [$user['id']]

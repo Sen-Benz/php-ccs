@@ -31,7 +31,7 @@ switch($action) {
                     duration_minutes = ?, 
                     passing_score = ? 
                   WHERE id = ?";
-        $stmt = $exam->conn->prepare($query);
+        $stmt = $exam->getConnection()->prepare($query);
         $result = $stmt->execute([
             $_POST['title'],
             $_POST['description'],
@@ -67,14 +67,14 @@ switch($action) {
 
     case 'delete_question':
         $query = "DELETE FROM questions WHERE id = ?";
-        $stmt = $exam->conn->prepare($query);
+        $stmt = $exam->getConnection()->prepare($query);
         $result = $stmt->execute([$_GET['id']]);
         header('Location: exams.php?action=questions&id=' . $_GET['exam_id'] . ($result ? '&success=1' : '&error=1'));
         break;
 
     case 'publish':
         $query = "UPDATE exams SET status = 'published' WHERE id = ?";
-        $stmt = $exam->conn->prepare($query);
+        $stmt = $exam->getConnection()->prepare($query);
         $result = $stmt->execute([$_GET['id']]);
         
         if ($result) {

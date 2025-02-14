@@ -33,7 +33,7 @@ $interview_stats = [
 ];
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();
     $conn = $database->getConnection();
 
     // Get date range filters

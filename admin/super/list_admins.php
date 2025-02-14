@@ -17,7 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $action = $_POST['action'];
 
         try {
-            $database = new Database();
+            $database = Database::getInstance();
             $conn = $database->getConnection();
 
             switch ($action) {
@@ -53,7 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 // Fetch all admin accounts
 try {
-    $database = new Database();
+    $database = Database::getInstance();
     $conn = $database->getConnection();
 
     $query = "SELECT u.id, u.email, u.status, u.created_at, 
@@ -78,7 +78,7 @@ admin_header($page_title);
 
 <div class="wrapper">
     <!-- Sidebar -->
-    <?php include '../includes/sidebar.php'; ?>
+    <?php include_once '../includes/sidebar.php'; ?>
 
     <!-- Page Content -->
     <div class="page-content-wrapper">

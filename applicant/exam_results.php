@@ -9,7 +9,7 @@ $auth->requireRole('applicant');
 $user = $auth->getCurrentUser();
 
 // Get applicant's exam results
-$database = new Database();
+$database = Database::getInstance();;
 $conn = $database->getConnection();
 
 $query = "SELECT er.*, e.title, e.part, e.passing_score

@@ -2,7 +2,7 @@
 require_once __DIR__ . '/../config/database.php';
 
 // Create database connection
-$database = new Database();
+$database = Database::getInstance();;
 $conn = $database->getConnection();
 
 // Super admin details

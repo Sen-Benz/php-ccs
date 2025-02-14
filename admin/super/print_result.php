@@ -13,7 +13,7 @@ if (!$result_id) {
 }
 
 try {
-    $database = new Database();
+    $database = Database::getInstance();;
     $conn = $database->getConnection();
 
     // Get result details

@@ -28,7 +28,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $error = 'Password must be at least 8 characters long';
     } else {
         try {
-            $database = new Database();
+            $database = Database::getInstance();
             $conn = $database->getConnection();
 
             // Check if email already exists
@@ -82,7 +82,7 @@ admin_header($page_title);
 
 <div class="wrapper">
     <!-- Sidebar -->
-    <?php include '../includes/sidebar.php'; ?>
+    <?php include_once '../includes/sidebar.php'; ?>
 
     <!-- Page Content -->
     <div class="page-content-wrapper">
