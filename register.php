@@ -15,6 +15,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $contact_number = $_POST['contact_number'] ?? '';
     $preferred_course = $_POST['preferred_course'] ?? '';
 
+    // Map preferred_course to course ENUM value
+$course_map = [
+    'BS Computer Science' => 'BSCS',
+    'BS Information Technology' => 'BSIT'
+];
+
+$course = $course_map[$preferred_course] ?? 'BSCS'; // Default to BSCS if not found
+
     if ($password !== $confirm_password) {
         $error = 'Passwords do not match';
     } else {
@@ -47,11 +55,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             if ($result['success']) {
                 // ✅ Add applicant details
-                $query = "INSERT INTO applicants (user_id, applicant_number, first_name, last_name, contact_number, preferred_course, progress_status) 
-                         VALUES (?, ?, ?, ?, ?, ?, 'registered')";
+                $query = "INSERT INTO applicants (user_id, applicant_number, first_name, last_name, contact_number, course, preferred_course, progress_status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, 'registered')";
                 $stmt = $conn->prepare($query);
 
-                if ($stmt->execute([$result['user_id'], $applicant_number, $first_name, $last_name, $contact_number, $preferred_course])) {
+                if ($stmt->execute([$result['user_id'], $applicant_number, $first_name, $last_name, $contact_number, $course, $preferred_course])) {
                     $success = 'Registration successful! Your applicant number is ' . $applicant_number . '. Please wait for admin approval before logging in.';
                 } else {
                     throw new Exception('Failed to save applicant details');
