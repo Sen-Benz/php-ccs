@@ -20,9 +20,15 @@ if (!$applicant_id) {
 
 try {
     // Fetch applicant details
-    $stmt = $conn->prepare("SELECT * FROM users WHERE id = ? AND role = 'applicant'");
-    $stmt->execute([$applicant_id]);
-    $applicant = $stmt->fetch();
+    $stmt = $conn->prepare("
+    SELECT u.*, a.contact_number, a.preferred_course 
+    FROM users u
+    JOIN applicants a ON u.id = a.user_id 
+    WHERE u.id = ? AND u.role = 'applicant'
+");
+$stmt->execute([$applicant_id]);
+$applicant = $stmt->fetch();
+
 
     if (!$applicant) {
         throw new Exception('Applicant not found.');
@@ -30,20 +36,21 @@ try {
 
     // Fetch exam results
     $stmt = $conn->prepare("
-        SELECT er.*, e.exam_title 
-        FROM exam_results er
-        JOIN exams e ON er.exam_id = e.id
-        WHERE er.user_id = ?
-        ORDER BY er.created_at DESC
-    ");
-    $stmt->execute([$applicant_id]);
-    $exam_results = $stmt->fetchAll();
+    SELECT er.*, e.title AS exam_title  
+    FROM exam_results er
+    JOIN exams e ON er.exam_id = e.id
+    WHERE er.applicant_id = ?  -- ✅ Correct column name
+    ORDER BY er.created_at DESC
+");
+$stmt->execute([$applicant_id]);
+$exam_results = $stmt->fetchAll();
+
 
     // Fetch interview records
     $stmt = $conn->prepare("
-        SELECT * FROM interviews 
-        WHERE user_id = ?
-        ORDER BY schedule DESC
+        SELECT * FROM interview_schedules 
+        WHERE applicant_id = ?
+        ORDER BY schedule_date DESC
     ");
     $stmt->execute([$applicant_id]);
     $interviews = $stmt->fetchAll();
@@ -55,18 +62,21 @@ try {
         
         $conn->beginTransaction();
         try {
-            // Update user status
-            $db->query(
-                "UPDATE users SET status = ?, updated_at = NOW() WHERE id = ?",
-                [$new_status, $applicant_id]
-            );
-
-            // Add status history
-            $db->query(
-                "INSERT INTO status_history (user_id, status, notes, created_by) VALUES (?, ?, ?, ?)",
-                [$applicant_id, $new_status, $notes, $auth->getCurrentUser()['id']]
-            );
-
+            // ✅ Fix: Use prepare/execute instead of query
+            $stmt = $conn->prepare("
+                UPDATE users 
+                SET status = ?, updated_at = NOW() 
+                WHERE id = ?
+            ");
+            $stmt->execute([$new_status, $applicant_id]);
+    
+            // ✅ Fix: Use prepare/execute for inserting history
+            $stmt = $conn->prepare("
+                INSERT INTO status_history (user_id, status, notes, created_by) 
+                VALUES (?, ?, ?, ?)
+            ");
+            $stmt->execute([$applicant_id, $new_status, $notes, $auth->getCurrentUser()['id']]);
+    
             $conn->commit();
             $success = "Applicant status updated successfully.";
             
@@ -138,11 +148,11 @@ admin_header('View Applicant');
                             </div>
                             <div class="mb-3">
                                 <label class="form-label text-muted">Contact Number</label>
-                                <p><?php echo htmlspecialchars($applicant['contact_number']); ?></p>
+                                <p><?php echo htmlspecialchars($applicant['contact_number'] ?? 'NULL'); ?></p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label text-muted">Preferred Course</label>
-                                <p><?php echo htmlspecialchars($applicant['program']); ?></p>
+                                <p><?php echo htmlspecialchars($applicant['preferred_course'] ?? 'N/A'); ?></p>
                             </div>
                             <div class="mb-3">
                                 <label class="form-label text-muted">Registration Date</label>

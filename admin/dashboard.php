@@ -21,7 +21,8 @@ if ($today_result) {
 
 $stmt = $db->query("SELECT * FROM users LIMIT 1");
 $test = $stmt->fetch();
-error_log(print_r($test, true));
+error_log("Dashboard loaded successfully for user ID: " . ($_SESSION['user_id'] ?? 'UNKNOWN'));
+
 
 
 try {

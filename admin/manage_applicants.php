@@ -22,49 +22,60 @@ $order = isset($_GET['order']) ? trim($_GET['order']) : 'DESC';
 $params = [];
 
 // Build the query with proper joins
-$query = "SELECT u.*,
-            e.score as exam_score,
-            e.status as exam_status,
-            i.schedule as interview_schedule,
-            i.status as interview_status
-         FROM users u
-         LEFT JOIN (
-            SELECT user_id, MAX(score) as score, status
-            FROM exam_results
-            GROUP BY user_id
-         ) e ON u.id = e.user_id
-         LEFT JOIN (
-            SELECT applicant_id, MAX(schedule) as schedule, status
-            FROM interviews
-            GROUP BY applicant_id
-         ) i ON u.id = i.applicant_id
-         WHERE u.role = 'applicant'";
+$query = "SELECT u.id, u.role, u.status, u.created_at, 
+       u.email,  -- 📌 Email comes from users
+       a.first_name, a.last_name,  -- 📌 Name comes from applicants
+       e.score AS exam_score,
+       e.status AS exam_status,
+       i.latest_schedule AS interview_schedule,
+       i.status AS interview_status
+FROM users u
+JOIN applicants a ON u.id = a.user_id  -- ✅ Fetch names from applicants
+LEFT JOIN (
+    SELECT applicant_id, MAX(score) AS score, status
+    FROM exam_results
+    GROUP BY applicant_id
+) e ON a.id = e.applicant_id
+LEFT JOIN (
+    SELECT applicant_id, MAX(schedule_date) AS latest_schedule, status
+    FROM interview_schedules
+    GROUP BY applicant_id
+) i ON a.id = i.applicant_id
+";
+
+$whereClauses = ["u.role = 'applicant'"]; // ✅ Always include base WHERE condition
 
 if (!empty($search)) {
-    $query .= " AND (u.first_name LIKE ? OR u.last_name LIKE ? OR u.email LIKE ?)";
+    $whereClauses[] = "(a.first_name LIKE ? OR a.last_name LIKE ? OR u.email LIKE ?)";
     $searchTerm = "%$search%";
     $params = array_merge($params, [$searchTerm, $searchTerm, $searchTerm]);
 }
 
 if (!empty($status)) {
-    $query .= " AND u.status = ?";
+    $whereClauses[] = "u.status = ?";
     $params[] = $status;
 }
+
+// ✅ Build WHERE clause safely
+$query .= " WHERE " . implode(" AND ", $whereClauses);
 
 // Add sorting with proper field references
 $sortField = match($sort) {
     'last_name' => 'u.last_name',
     'status' => 'u.status',
     'exam_score' => 'e.score',
-    'interview_date' => 'i.schedule',
+    'interview_date' => 'i.latest_schedule', // ✅ Fixed field name
     default => 'u.created_at'
 };
 
-$query .= " ORDER BY $sortField $order";
+$query .= " ORDER BY " . ($sortField ?? 'u.created_at') . " " . ($order ?? 'DESC');
 
 try {
-    $stmt = $db->query($query, $params);
-    $applicants = $stmt->fetchAll();
+    $stmt = $db->prepare($query);
+$stmt->execute($params);
+$applicants = $stmt->fetchAll();
+$stmt->closeCursor(); // ✅ Close result set
+
 } catch (Exception $e) {
     error_log("Error fetching applicants: " . $e->getMessage());
     $error = "An error occurred while fetching applicants.";
@@ -161,12 +172,15 @@ admin_header('Manage Applicants');
                                         </span>
                                     </td>
                                     <td>
-                                        <?php echo !empty($applicant['exam_score']) ? $applicant['exam_score'] . '%' : 'N/A'; ?>
-                                    </td>
+    <?php echo !empty($applicant['exam_score']) ? 
+        $applicant['exam_score'] . '%' : '<span class="text-muted">No exam result yet</span>'; ?>
+</td>
+
                                     <td>
-                                        <?php echo !empty($applicant['interview_schedule']) ? 
-                                            date('M d, Y', strtotime($applicant['interview_schedule'])) : 'N/A'; ?>
-                                    </td>
+    <?php echo !empty($applicant['interview_schedule']) ? 
+        date('M d, Y', strtotime($applicant['interview_schedule'])) : '<span class="text-muted">No interview set yet</span>'; ?>
+</td>
+
                                     <td>
                                         <div class="btn-group">
                                             <a href="view_applicant.php?id=<?php echo $applicant['id']; ?>" 

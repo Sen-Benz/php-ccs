@@ -13,7 +13,7 @@ class Auth {
         $this->conn = $this->database->getConnection();
     }
 
-    public function login($email, $password) {
+    public function login($email, $password): array {
         try {
             // First check if user exists with given email
             $stmt = $this->conn->prepare("
@@ -33,6 +33,8 @@ class Auth {
             
             $stmt->execute([$email]);
             $user = $stmt->fetch(PDO::FETCH_ASSOC);
+            $stmt->closeCursor(); // ✅ Close result set
+
             
             if (!$user) {
                 return ['success' => false, 'message' => 'Invalid credentials'];
@@ -154,6 +156,8 @@ class Auth {
             ");
             $stmt->execute([$_SESSION['user_id']]);
             $user = $stmt->fetch();
+            $stmt->closeCursor(); // ✅ Close result set
+
 
             if (!$user || !in_array($user['role_type'], $roles)) {
                 $this->logout();
@@ -175,14 +179,21 @@ class Auth {
         if(isset($_SESSION['user_id'])) {
             $this->logActivity($_SESSION['user_id'], 'logout', 'User logged out');
         }
-        
-        $_SESSION = array();
-        if (isset($_COOKIE[session_name()])) {
-            setcookie(session_name(), '', time()-3600, '/');
-        }
+    
+        // Fully clear session
+        $_SESSION = [];
+        session_unset();
         session_destroy();
+    
+        // Regenerate session ID for security
         session_start();
+        session_regenerate_id(true);
+    
+        // Redirect to login page after logout
+        header("Location: /php-ccs/login.php");
+        exit();
     }
+    
 
     public function logActivity($user_id, $action, $details) {
         try {
