@@ -2,6 +2,7 @@
 require_once '../config/config.php';
 require_once '../classes/Auth.php';
 require_once '../includes/layout.php';
+require_once '../config/database.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {

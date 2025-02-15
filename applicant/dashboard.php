@@ -1,5 +1,6 @@
 <?php
 require_once '../config/config.php';
+require_once '../config/database.php';
 require_once '../classes/Auth.php';
 require_once '../includes/layout.php';
 require_once '../includes/utilities.php';
@@ -31,11 +32,11 @@ try {
                 DATE_FORMAT(er.created_at, '%M %d, %Y') as completion_date
          FROM exam_results er
          JOIN exams e ON er.exam_id = e.id
-         WHERE er.user_id = ?
+         WHERE er.applicant_id = ?
          ORDER BY er.created_at DESC
          LIMIT 5",
         [$user_id]
-    );
+    );    
     $recent_exams = $stmt->fetchAll();
 
     // Get total exams taken
@@ -44,30 +45,30 @@ try {
                 COALESCE(AVG(score), 0) as average_score,
                 COALESCE(MAX(score), 0) as highest_score
          FROM exam_results
-         WHERE user_id = ?",
+         WHERE applicant_id = ?",
         [$user_id]
-    );
+    );    
     $exam_stats = $stmt->fetch();
 
     // Get upcoming/available exams
     $stmt = $db->query(
         "SELECT e.* 
          FROM exams e
-         LEFT JOIN exam_results er ON er.exam_id = e.id AND er.user_id = ?
-         WHERE e.status = 'active' AND er.id IS NULL
+         LEFT JOIN exam_results er ON er.exam_id = e.id AND er.applicant_id = ?
+         WHERE e.status = 'published' AND er.id IS NULL
          LIMIT 3",
         [$user_id]
-    );
+    );    
     $available_exams = $stmt->fetchAll();
 
     // Get user data
     $stmt = $db->query(
-        "SELECT u.*, a.status 
-         FROM users u 
-         LEFT JOIN applicants a ON a.user_id = u.id 
+        "SELECT u.* 
+         FROM users u
          WHERE u.id = ?",
         [$user_id]
     );
+    
     $user_data = $stmt->fetch();
     
     // If no applicant record exists, create one

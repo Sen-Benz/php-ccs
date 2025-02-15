@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 14, 2025 at 03:14 PM
+-- Generation Time: Feb 15, 2025 at 12:54 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -185,7 +185,116 @@ INSERT INTO `activity_logs` (`id`, `user_id`, `action`, `details`, `ip_address`,
 (145, 2, 'logout', 'User logged out', '::1', '2025-02-14 14:02:21'),
 (146, 5, 'login', 'User logged in successfully', '::1', '2025-02-14 14:02:29'),
 (147, 5, 'logout', 'User logged out', '::1', '2025-02-14 14:10:59'),
-(148, 2, 'login', 'User logged in successfully', '::1', '2025-02-14 14:11:05');
+(148, 2, 'login', 'User logged in successfully', '::1', '2025-02-14 14:11:05'),
+(149, 2, 'logout', 'User logged out', '::1', '2025-02-14 14:24:49'),
+(150, 5, 'login', 'User logged in successfully', '::1', '2025-02-14 14:25:05'),
+(151, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 02:23:41'),
+(152, 5, 'logout', 'User logged out', '::1', '2025-02-15 02:24:25'),
+(153, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 02:24:29'),
+(154, 5, 'logout', 'User logged out', '::1', '2025-02-15 02:24:32'),
+(155, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 02:24:55'),
+(156, 5, 'logout', 'User logged out', '::1', '2025-02-15 02:25:11'),
+(157, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 02:25:14'),
+(158, 5, 'logout', 'User logged out', '::1', '2025-02-15 02:39:45'),
+(159, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 02:39:48'),
+(160, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 04:01:21'),
+(161, 5, 'logout', 'User logged out', '::1', '2025-02-15 04:01:23'),
+(162, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 04:01:28'),
+(163, 5, 'logout', 'User logged out', '::1', '2025-02-15 04:01:30'),
+(164, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 04:01:35'),
+(165, 5, 'logout', 'User logged out', '::1', '2025-02-15 04:03:15'),
+(166, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 04:03:46'),
+(167, 5, 'logout', 'User logged out', '::1', '2025-02-15 04:03:50'),
+(168, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 04:07:21'),
+(169, 5, 'logout', 'User logged out', '::1', '2025-02-15 04:07:22'),
+(170, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 04:09:25'),
+(171, 5, 'logout', 'User logged out', '::1', '2025-02-15 04:09:27'),
+(172, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 04:12:26'),
+(173, 5, 'logout', 'User logged out', '::1', '2025-02-15 04:12:29'),
+(174, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 04:13:56'),
+(175, 5, 'logout', 'User logged out', '::1', '2025-02-15 04:13:59'),
+(176, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 04:15:43'),
+(177, 5, 'logout', 'User logged out', '::1', '2025-02-15 04:15:45'),
+(178, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 04:15:58'),
+(179, 5, 'logout', 'User logged out', '::1', '2025-02-15 04:16:00'),
+(180, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 04:18:24'),
+(181, 5, 'logout', 'User logged out', '::1', '2025-02-15 04:26:01'),
+(182, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 04:30:01'),
+(183, 5, 'logout', 'User logged out', '::1', '2025-02-15 04:30:07'),
+(184, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 04:33:27'),
+(185, 5, 'logout', 'User logged out', '::1', '2025-02-15 04:33:30'),
+(186, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 04:37:51'),
+(187, 5, 'logout', 'User logged out', '::1', '2025-02-15 04:37:54'),
+(188, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 05:11:38'),
+(189, 5, 'logout', 'User logged out', '::1', '2025-02-15 05:21:52'),
+(190, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 05:21:57'),
+(191, 5, 'logout', 'User logged out', '::1', '2025-02-15 05:25:56'),
+(192, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 05:26:08'),
+(193, 5, 'logout', 'User logged out', '::1', '2025-02-15 05:27:51'),
+(194, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 05:27:54'),
+(195, 5, 'logout', 'User logged out', '::1', '2025-02-15 05:31:49'),
+(196, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 05:31:51'),
+(197, 5, 'logout', 'User logged out', '::1', '2025-02-15 05:36:27'),
+(198, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 05:36:29'),
+(199, 5, 'logout', 'User logged out', '::1', '2025-02-15 05:40:44'),
+(200, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 05:40:45'),
+(201, 5, 'logout', 'User logged out', '::1', '2025-02-15 05:41:34'),
+(202, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 05:42:18'),
+(203, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 05:52:08'),
+(204, 5, 'logout', 'User logged out', '::1', '2025-02-15 05:52:09'),
+(205, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 05:52:11'),
+(206, 5, 'logout', 'User logged out', '::1', '2025-02-15 05:52:11'),
+(207, 2, 'login', 'User logged in successfully', '::1', '2025-02-15 05:52:17'),
+(208, 2, 'logout', 'User logged out', '::1', '2025-02-15 05:52:21'),
+(209, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 05:52:28'),
+(210, 5, 'logout', 'User logged out', '::1', '2025-02-15 05:55:46'),
+(211, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 05:55:48'),
+(212, 5, 'logout', 'User logged out', '::1', '2025-02-15 05:56:34'),
+(213, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 05:56:35'),
+(214, 5, 'logout', 'User logged out', '::1', '2025-02-15 05:56:54'),
+(215, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 06:16:21'),
+(216, 5, 'logout', 'User logged out', '::1', '2025-02-15 07:15:45'),
+(217, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 07:15:48'),
+(218, 5, 'logout', 'User logged out', '::1', '2025-02-15 08:24:18'),
+(219, 16, 'register', 'New user registration', '::1', '2025-02-15 08:33:10'),
+(220, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 08:36:21'),
+(221, 5, 'logout', 'User logged out', '::1', '2025-02-15 09:16:33'),
+(222, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 09:16:35'),
+(223, 5, 'logout', 'User logged out', '::1', '2025-02-15 09:42:05'),
+(224, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 09:42:58'),
+(225, 5, 'logout', 'User logged out', '::1', '2025-02-15 09:43:13'),
+(226, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 09:43:15'),
+(227, 5, 'logout', 'User logged out', '::1', '2025-02-15 09:50:07'),
+(228, 15, 'login', 'User logged in successfully', '::1', '2025-02-15 09:59:34'),
+(229, 15, 'logout', 'User logged out', '::1', '2025-02-15 09:59:56'),
+(230, 15, 'login', 'User logged in successfully', '::1', '2025-02-15 10:00:20'),
+(231, 15, 'logout', 'User logged out', '::1', '2025-02-15 10:00:22'),
+(232, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 10:00:48'),
+(233, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 10:01:40'),
+(234, 5, 'logout', 'User logged out', '::1', '2025-02-15 10:01:42'),
+(235, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 10:02:05'),
+(236, 5, 'logout', 'User logged out', '::1', '2025-02-15 10:02:07'),
+(237, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 10:02:40'),
+(238, 5, 'logout', 'User logged out', '::1', '2025-02-15 10:13:20'),
+(239, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 10:14:07'),
+(240, 5, 'logout', 'User logged out', '::1', '2025-02-15 10:14:10'),
+(241, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 10:14:16'),
+(242, 5, 'logout', 'User logged out', '::1', '2025-02-15 10:21:56'),
+(243, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 10:22:00'),
+(244, 5, 'logout', 'User logged out', '::1', '2025-02-15 10:22:03'),
+(245, 15, 'login', 'User logged in successfully', '::1', '2025-02-15 10:22:08'),
+(246, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 10:34:57'),
+(247, 5, 'logout', 'User logged out', '::1', '2025-02-15 10:35:09'),
+(248, 2, 'login', 'User logged in successfully', '::1', '2025-02-15 10:35:34'),
+(249, 2, 'exam_publish', 'Exam (ID: 1) status changed to published', '::1', '2025-02-15 10:36:18'),
+(250, 5, 'login', 'User logged in successfully', '::1', '2025-02-15 11:26:47'),
+(251, 5, 'logout', 'User logged out', '::1', '2025-02-15 11:26:53'),
+(252, 2, 'login', 'User logged in successfully', '::1', '2025-02-15 11:27:00'),
+(253, 2, 'question_added', 'Added new question to exam ID: 1', '::1', '2025-02-15 11:28:07'),
+(254, 2, 'question_added', 'Added new question to exam ID: 1', '::1', '2025-02-15 11:28:18'),
+(255, 2, 'logout', 'User logged out', '::1', '2025-02-15 11:28:22'),
+(256, 2, 'login', 'User logged in successfully', '::1', '2025-02-15 11:38:05'),
+(257, 2, 'exam_publish', 'Exam (ID: 2) status changed to published', '::1', '2025-02-15 11:38:24');
 
 -- --------------------------------------------------------
 
@@ -256,13 +365,14 @@ CREATE TABLE `applicants` (
 --
 
 INSERT INTO `applicants` (`id`, `user_id`, `applicant_number`, `first_name`, `middle_name`, `last_name`, `contact_number`, `address`, `birth_date`, `school`, `course`, `year_level`, `progress_status`, `created_at`, `updated_at`, `application_status_id`, `exam_status_id`, `preferred_course`) VALUES
-(3, 9, '20250001', 'applicant 1', NULL, 'test', '09272521245', '', '0000-00-00', '', 'BSCS', '1st Year', 'registered', '2025-02-14 10:29:37', '2025-02-14 10:29:37', NULL, NULL, 'BS Information Technology'),
-(4, 10, '20250002', 'applicant 2', NULL, 'test', '09272521245', '', '0000-00-00', '', 'BSCS', '1st Year', 'registered', '2025-02-14 10:32:05', '2025-02-14 10:32:05', NULL, NULL, 'BS Information Technology'),
+(3, 9, '20250001', 'applicant 1', NULL, 'test', '09272521245', '', '0000-00-00', '', 'BSIT', '1st Year', 'registered', '2025-02-14 10:29:37', '2025-02-15 08:34:31', NULL, NULL, 'BS Information Technology'),
+(4, 10, '20250002', 'applicant 2', NULL, 'test', '09272521245', '', '0000-00-00', '', 'BSIT', '1st Year', 'registered', '2025-02-14 10:32:05', '2025-02-15 08:34:31', NULL, NULL, 'BS Information Technology'),
 (5, 11, '20250003', 'applicant 3', NULL, 'test', '09272521245', '', '0000-00-00', '', 'BSCS', '1st Year', 'registered', '2025-02-14 10:34:16', '2025-02-14 10:34:16', NULL, NULL, 'BS Computer Science'),
 (6, 12, '20250004', 'applicant 4', NULL, 'test', '09272521245', '', '0000-00-00', '', 'BSCS', '1st Year', 'registered', '2025-02-14 10:38:37', '2025-02-14 10:38:37', NULL, NULL, 'BS Computer Science'),
-(7, 13, '20250005', 'applicant 5', NULL, 'test', '09272521245', '', '0000-00-00', '', 'BSCS', '1st Year', 'registered', '2025-02-14 10:43:12', '2025-02-14 10:43:12', NULL, NULL, 'BS Information Technology'),
+(7, 13, '20250005', 'applicant 5', NULL, 'test', '09272521245', '', '0000-00-00', '', 'BSIT', '1st Year', 'registered', '2025-02-14 10:43:12', '2025-02-15 08:34:31', NULL, NULL, 'BS Information Technology'),
 (8, 14, '20250006', 'applicant 6', NULL, 'test', '09272521245', '', '0000-00-00', '', 'BSCS', '1st Year', 'registered', '2025-02-14 10:49:44', '2025-02-14 10:49:44', NULL, NULL, 'BS Computer Science'),
-(9, 15, '20250007', 'applicant 7', NULL, 'test', '09272521245', '', '0000-00-00', '', 'BSCS', '1st Year', 'registered', '2025-02-14 10:55:38', '2025-02-14 10:55:38', NULL, NULL, 'BS Information Technology');
+(9, 15, '20250007', 'applicant 7', NULL, 'test', '09272521245', '', '0000-00-00', '', 'BSIT', '1st Year', 'registered', '2025-02-14 10:55:38', '2025-02-15 08:34:31', NULL, NULL, 'BS Information Technology'),
+(10, 16, '20250008', 'John Doe', NULL, 'Mamah', '09651242386', '', '0000-00-00', '', 'BSIT', '1st Year', 'registered', '2025-02-15 08:33:10', '2025-02-15 08:33:10', NULL, NULL, 'BS Information Technology');
 
 -- --------------------------------------------------------
 
@@ -366,8 +476,8 @@ CREATE TABLE `exams` (
 --
 
 INSERT INTO `exams` (`id`, `title`, `description`, `type`, `part`, `duration_minutes`, `passing_score`, `status`, `created_by`, `created_at`, `updated_at`, `instructions`) VALUES
-(1, 'test 1', 'Please be informed that the following exam will determine your eligibility for enrollment in the course. Kindly take it seriously. Thank you.', 'mcq', '1', 60, 75, 'draft', 2, '2025-02-14 06:42:04', '2025-02-14 06:54:05', ''),
-(2, 'Entrance Exam', 'Please be informed that the following exam will determine your eligibility for enrollment in the course. Kindly take it seriously. Thank you.', 'mcq', '1', 60, 75, 'draft', 2, '2025-02-14 06:42:13', '2025-02-14 06:42:13', '');
+(1, 'test 1', 'Please be informed that the following exam will determine your eligibility for enrollment in the course. Kindly take it seriously. Thank you.', 'mcq', '1', 60, 75, 'published', 2, '2025-02-14 06:42:04', '2025-02-15 10:36:18', ''),
+(2, 'Entrance Exam', 'Please be informed that the following exam will determine your eligibility for enrollment in the course. Kindly take it seriously. Thank you.', 'mcq', '1', 60, 75, 'published', 2, '2025-02-14 06:42:13', '2025-02-15 11:38:24', '');
 
 -- --------------------------------------------------------
 
@@ -495,7 +605,34 @@ INSERT INTO `questions` (`id`, `exam_id`, `question_text`, `question_type`, `poi
 (2, 2, 'test', 'multiple_choice', 15, NULL, NULL, NULL, '', '[\"qw\",\"qwe\",\"qweq\",\"weq\"]', '0', '2025-02-14 06:44:42', '2025-02-14 06:44:42'),
 (3, 2, '7t7tt7ttuuttutu', 'multiple_choice', 15, NULL, NULL, NULL, '', '[\"456\",\"456\",\"4564\",\"456\"]', '0', '2025-02-14 06:44:57', '2025-02-14 06:44:57'),
 (4, 2, '234', 'multiple_choice', 15, NULL, NULL, NULL, 'qwe', '[\"12\",\"sdr\",\"wer\",\"wer\"]', '0', '2025-02-14 06:45:10', '2025-02-14 06:45:10'),
-(5, 2, 'qweq', 'multiple_choice', 15, NULL, NULL, NULL, 'asda', '[\"123\",\"1231\",\"2312\",\"3123\"]', '0', '2025-02-14 06:45:41', '2025-02-14 06:45:41');
+(5, 2, 'qweq', 'multiple_choice', 15, NULL, NULL, NULL, 'asda', '[\"123\",\"1231\",\"2312\",\"3123\"]', '0', '2025-02-14 06:45:41', '2025-02-14 06:45:41'),
+(6, 1, '123123', 'multiple_choice', 50, NULL, NULL, NULL, '', '[\"123123\",\"123\",\"123123\",\"123123\"]', '0', '2025-02-15 11:28:07', '2025-02-15 11:28:07'),
+(7, 1, '123212', 'multiple_choice', 50, NULL, NULL, NULL, '', '[\"123\",\"12312\",\"3123\",\"1231\"]', '0', '2025-02-15 11:28:18', '2025-02-15 11:28:18');
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `status_history`
+--
+
+CREATE TABLE `status_history` (
+  `id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `status` enum('pending','approved','rejected') NOT NULL,
+  `notes` text DEFAULT NULL,
+  `created_by` int(11) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `status_history`
+--
+
+INSERT INTO `status_history` (`id`, `user_id`, `status`, `notes`, `created_by`, `created_at`) VALUES
+(1, 15, 'approved', '', 5, '2025-02-15 07:15:27'),
+(2, 16, 'rejected', '', 5, '2025-02-15 09:16:29'),
+(3, 14, 'pending', '', 5, '2025-02-15 09:43:11'),
+(4, 14, 'approved', '', 5, '2025-02-15 09:44:23');
 
 -- --------------------------------------------------------
 
@@ -548,8 +685,9 @@ INSERT INTO `users` (`id`, `email`, `password`, `first_name`, `last_name`, `role
 (11, 'testingapplicant3@gmail.com', '$2y$10$K84gqSvABeAhWLCeHRaPiu/VTzwfyDASfkp/zEjQf2gD/9biHFR4q', '', '', 'applicant', 'pending', '2025-02-14 10:34:16', '2025-02-14 10:34:16', NULL),
 (12, 'testingapplicant4@gmail.com', '$2y$10$yta6GEhZyGWplgXkrm6RTeuK1AuirVxwr2sjqrHCW7kAF29JS/Ud6', '', '', 'applicant', 'pending', '2025-02-14 10:38:37', '2025-02-14 10:38:37', NULL),
 (13, 'testingapplicant5@gmail.com', '$2y$10$PK/e4PgeWel2Pvbte2D84ejd9KkMvwJSCopS/YsQvcRTjfVvM4HuC', '', '', 'applicant', 'pending', '2025-02-14 10:43:12', '2025-02-14 10:43:12', NULL),
-(14, 'testingapplicant6@gmail.com', '$2y$10$iiDQuEDvbWoR0QcRIXhIi.TrfIO1NMCAC0mtayWlGx4p.A.5IyGxa', '', '', 'applicant', 'pending', '2025-02-14 10:49:44', '2025-02-14 10:49:44', NULL),
-(15, 'testingapplicant7@gmail.com', '$2y$10$4U6Xp.i5SMwPtXu0tMv9guKwbd8SSA8ONwyTyAl4QoaD4NUx4xFH.', '', '', 'applicant', 'pending', '2025-02-14 10:55:38', '2025-02-14 10:55:38', NULL);
+(14, 'testingapplicant6@gmail.com', '$2y$10$iiDQuEDvbWoR0QcRIXhIi.TrfIO1NMCAC0mtayWlGx4p.A.5IyGxa', '', '', 'applicant', 'approved', '2025-02-14 10:49:44', '2025-02-15 09:44:23', 5),
+(15, 'testingapplicant7@gmail.com', '$2y$10$4U6Xp.i5SMwPtXu0tMv9guKwbd8SSA8ONwyTyAl4QoaD4NUx4xFH.', '', '', 'applicant', 'approved', '2025-02-14 10:55:38', '2025-02-15 09:34:10', 5),
+(16, 'john_doe.mama@gmail.com', '$2y$10$QesfjKh7Xdd6P6BWO96ACegaOitFDLyxl6AheQZR3/ykoYXOstsIK', '', '', 'applicant', 'rejected', '2025-02-15 08:33:10', '2025-02-15 09:16:29', 5);
 
 --
 -- Indexes for dumped tables
@@ -670,6 +808,14 @@ ALTER TABLE `questions`
   ADD KEY `exam_id` (`exam_id`);
 
 --
+-- Indexes for table `status_history`
+--
+ALTER TABLE `status_history`
+  ADD PRIMARY KEY (`id`),
+  ADD KEY `user_id` (`user_id`),
+  ADD KEY `created_by` (`created_by`);
+
+--
 -- Indexes for table `super_admins`
 --
 ALTER TABLE `super_admins`
@@ -691,7 +837,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=149;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=258;
 
 --
 -- AUTO_INCREMENT for table `admins`
@@ -709,7 +855,7 @@ ALTER TABLE `announcements`
 -- AUTO_INCREMENT for table `applicants`
 --
 ALTER TABLE `applicants`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
 
 --
 -- AUTO_INCREMENT for table `applicant_answers`
@@ -775,7 +921,13 @@ ALTER TABLE `notifications`
 -- AUTO_INCREMENT for table `questions`
 --
 ALTER TABLE `questions`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=8;
+
+--
+-- AUTO_INCREMENT for table `status_history`
+--
+ALTER TABLE `status_history`
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
 
 --
 -- AUTO_INCREMENT for table `super_admins`
@@ -787,7 +939,7 @@ ALTER TABLE `super_admins`
 -- AUTO_INCREMENT for table `users`
 --
 ALTER TABLE `users`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=17;
 
 --
 -- Constraints for dumped tables
@@ -864,6 +1016,13 @@ ALTER TABLE `notifications`
 --
 ALTER TABLE `questions`
   ADD CONSTRAINT `questions_ibfk_1` FOREIGN KEY (`exam_id`) REFERENCES `exams` (`id`) ON DELETE CASCADE;
+
+--
+-- Constraints for table `status_history`
+--
+ALTER TABLE `status_history`
+  ADD CONSTRAINT `status_history_ibfk_1` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `status_history_ibfk_2` FOREIGN KEY (`created_by`) REFERENCES `users` (`id`) ON DELETE SET NULL;
 
 --
 -- Constraints for table `super_admins`

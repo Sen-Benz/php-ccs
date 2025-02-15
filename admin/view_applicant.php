@@ -64,11 +64,12 @@ $exam_results = $stmt->fetchAll();
         try {
             // ✅ Fix: Use prepare/execute instead of query
             $stmt = $conn->prepare("
-                UPDATE users 
-                SET status = ?, updated_at = NOW() 
-                WHERE id = ?
-            ");
-            $stmt->execute([$new_status, $applicant_id]);
+    UPDATE users 
+    SET status = ?, updated_by = ?, updated_at = NOW() 
+    WHERE id = ?
+");
+$stmt->execute([$new_status, $auth->getCurrentUser()['id'], $applicant_id]);
+
     
             // ✅ Fix: Use prepare/execute for inserting history
             $stmt = $conn->prepare("

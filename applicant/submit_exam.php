@@ -1,6 +1,7 @@
 <?php
 require_once '../config/config.php';
 require_once '../classes/Auth.php';
+require_once '../config/database.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -25,28 +26,29 @@ if (!$exam_id || empty($answers)) {
 }
 
 try {
-    $db = Database::getInstance();;
-    
+    $db = Database::getInstance()->getConnection(); // Get the PDO connection
+
     // Start transaction
     $db->beginTransaction();
     
     // Get exam details
-    $stmt = $db->query("SELECT * FROM exams WHERE id = ?", [$exam_id]);
+    $stmt = $db->prepare("SELECT * FROM exams WHERE id = ?");
+    $stmt->execute([$exam_id]);
     $exam = $stmt->fetch();
-    
+
     if (!$exam) {
         throw new Exception('Exam not found.');
     }
-    
+
     // Calculate score
     $total_questions = 0;
     $correct_answers = 0;
     
     foreach ($answers as $question_id => $choice_id) {
-        $stmt = $db->query(
-            "SELECT is_correct FROM question_choices WHERE id = ? AND question_id = ?",
-            [$choice_id, $question_id]
+        $stmt = $db->prepare(
+            "SELECT is_correct FROM question_choices WHERE id = ? AND question_id = ?"
         );
+        $stmt->execute([$choice_id, $question_id]);
         $choice = $stmt->fetch();
         
         if ($choice) {
@@ -64,19 +66,19 @@ try {
     $completion_time = ($exam['duration_minutes'] - ($time_remaining / 60));
     
     // Save exam result
-    $db->query(
+    $stmt = $db->prepare(
         "INSERT INTO exam_results (user_id, exam_id, score, completion_time, created_at) 
-         VALUES (?, ?, ?, ?, NOW())",
-        [$user_id, $exam_id, $score, $completion_time]
+         VALUES (?, ?, ?, ?, NOW())"
     );
+    $stmt->execute([$user_id, $exam_id, $score, $completion_time]);
     
     // Save detailed answers
     foreach ($answers as $question_id => $choice_id) {
-        $db->query(
+        $stmt = $db->prepare(
             "INSERT INTO exam_answers (user_id, exam_id, question_id, choice_id, created_at)
-             VALUES (?, ?, ?, ?, NOW())",
-            [$user_id, $exam_id, $question_id, $choice_id]
+             VALUES (?, ?, ?, ?, NOW())"
         );
+        $stmt->execute([$user_id, $exam_id, $question_id, $choice_id]);
     }
     
     // Commit transaction
@@ -96,3 +98,4 @@ try {
 
 header('Location: ' . BASE_URL . 'applicant/results.php');
 exit;
+

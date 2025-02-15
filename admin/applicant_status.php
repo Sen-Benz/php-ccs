@@ -25,24 +25,28 @@ try {
             COUNT(*) as total,
             SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
             SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
-            SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected
-         FROM users u
-         WHERE u.role = 'applicant'",
-        []
+            SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected,
+            SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,  -- ✅ Added active
+            SUM(CASE WHEN status = 'inactive' THEN 1 ELSE 0 END) as inactive  -- ✅ Added inactive
+         FROM users
+         WHERE role = 'applicant'"
     );
+    
     $stats = $stmt->fetch();
 
     // Get recent status changes with admin names
     $stmt = $db->query(
-        "SELECT u.*, 
-                CONCAT(a.first_name, ' ', a.last_name) as admin_name,
-                u.updated_at as status_changed_at
+        "SELECT 
+            CONCAT(a.first_name, ' ', a.last_name) AS applicant_name,  -- ✅ Get applicant's full name
+            u.status,
+            COALESCE(CONCAT(admin.first_name, ' ', admin.last_name), 'System') AS changed_by,  -- ✅ Get admin name, default 'System'
+            u.updated_at AS status_changed_at
          FROM users u
-         LEFT JOIN users a ON u.updated_by = a.id
+         LEFT JOIN applicants a ON u.id = a.user_id  -- ✅ Includes users even if no match
+         LEFT JOIN admins admin ON u.updated_by = admin.user_id  -- ✅ Fetch from admins table
          WHERE u.role = 'applicant'
          ORDER BY u.updated_at DESC
-         LIMIT 10",
-        []
+         LIMIT 10"
     );
     $recent_changes = $stmt->fetchAll();
 
@@ -50,28 +54,32 @@ try {
     
     $stmt = $db->query(
         "SELECT 
-            preferred_course AS program, 
+            a.preferred_course AS program, 
             COUNT(*) as total,
-            SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
-            SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved,
-            SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected
-         FROM applicants
-         WHERE preferred_course IS NOT NULL
-         GROUP BY preferred_course
-         ORDER BY preferred_course ASC"
+            SUM(CASE WHEN u.status = 'pending' THEN 1 ELSE 0 END) as pending,
+            SUM(CASE WHEN u.status = 'approved' THEN 1 ELSE 0 END) as approved,
+            SUM(CASE WHEN u.status = 'rejected' THEN 1 ELSE 0 END) as rejected,
+            SUM(CASE WHEN u.status = 'active' THEN 1 ELSE 0 END) as active,
+            SUM(CASE WHEN u.status = 'inactive' THEN 1 ELSE 0 END) as inactive
+         FROM applicants a
+         JOIN users u ON a.user_id = u.id  -- ✅ JOIN users to get status
+         WHERE a.preferred_course IS NOT NULL
+         GROUP BY a.preferred_course
+         ORDER BY a.preferred_course ASC"
     );
+    
     $program_stats = $stmt->fetchAll();
     
     if (empty($program_stats)) {
         error_log("DEBUG: No data returned for program_stats");
     }
 
-    $program_stats = $stmt->fetchAll();
-
 } catch (Exception $e) {
     error_log("Error in applicant status page: " . $e->getMessage());
     $error = "An error occurred while fetching statistics.";
 }
+
+
 
 ?>
 
@@ -239,21 +247,22 @@ try {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <?php foreach ($recent_changes as $change): ?>
-                                            <tr>
-                                                <td><?php echo htmlspecialchars($change['first_name'] . ' ' . $change['last_name']); ?></td>
-                                                <td>
-                                                    <span class="badge bg-<?php 
-                                                        echo $change['status'] === 'approved' ? 'success' : 
-                                                            ($change['status'] === 'rejected' ? 'danger' : 'warning'); 
-                                                    ?>">
-                                                        <?php echo ucfirst($change['status']); ?>
-                                                    </span>
-                                                </td>
-                                                <td><?php echo htmlspecialchars($change['admin_name'] ?? 'System'); ?></td>
-                                                <td><?php echo date('M d, Y H:i', strtotime($change['status_changed_at'])); ?></td>
-                                            </tr>
-                                        <?php endforeach; ?>
+                                    <?php foreach ($recent_changes as $change): ?>
+    <tr>
+        <td><?php echo htmlspecialchars($change['applicant_name']); ?></td>
+        <td>
+            <span class="badge bg-<?php 
+                echo $change['status'] === 'approved' ? 'success' : 
+                    ($change['status'] === 'rejected' ? 'danger' : 'warning'); 
+            ?>">
+                <?php echo ucfirst($change['status']); ?>
+            </span>
+        </td>
+        <td><?php echo htmlspecialchars($change['changed_by'] ?? 'System'); ?></td>
+        <td><?php echo date('M d, Y H:i', strtotime($change['status_changed_at'])); ?></td>
+    </tr>
+<?php endforeach; ?>
+
                                     </tbody>
                                 </table>
                             </div>

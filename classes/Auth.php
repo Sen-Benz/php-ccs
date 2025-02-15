@@ -44,9 +44,14 @@ class Auth {
                 return ['success' => false, 'message' => 'Invalid credentials'];
             }
 
-            if ($user['status'] !== 'active') {
+            if (in_array($user['status'], ['pending', 'inactive'])) {
                 return ['success' => false, 'message' => 'Account is not active. Please wait for admin approval.'];
             }
+            
+            if ($user['status'] === 'rejected') {
+                return ['success' => false, 'message' => 'Account registration rejected. If you think this was a mistake, please contact the admin.'];
+            }
+            
 
             // Generate new session ID to prevent session fixation
             session_regenerate_id(true);
