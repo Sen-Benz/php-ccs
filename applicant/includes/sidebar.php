@@ -29,10 +29,12 @@ try {
 
     // Get exam stats
     $stmt = $db->query(
-        "SELECT COUNT(*) as total_exams, AVG(score) as avg_score 
+        "SELECT COUNT(*) as total_exams, 
+                (SUM(score) / SUM(passing_score)) * 100 as avg_score 
          FROM exam_results WHERE applicant_id = ?",
         [(int)$user_id]
     );
+    
     $exam_stats = $stmt->fetch();
 } catch (Exception $e) {
     error_log("Sidebar Error: " . $e->getMessage());

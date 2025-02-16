@@ -113,7 +113,7 @@ get_header('Exams');
                     // Get available exams
                     $stmt = $db->query(
                         "SELECT e.* FROM exams e 
-                         LEFT JOIN exam_results er ON er.exam_id = e.id AND er.user_id = ?
+                         LEFT JOIN exam_results er ON er.exam_id = e.id AND er.applicant_id  = ?
                          WHERE e.status = 'active' AND er.id IS NULL", 
                         [$user_id]
                     );

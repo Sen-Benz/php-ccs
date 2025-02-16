@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Feb 15, 2025 at 12:54 PM
+-- Generation Time: Feb 16, 2025 at 03:31 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -294,7 +294,21 @@ INSERT INTO `activity_logs` (`id`, `user_id`, `action`, `details`, `ip_address`,
 (254, 2, 'question_added', 'Added new question to exam ID: 1', '::1', '2025-02-15 11:28:18'),
 (255, 2, 'logout', 'User logged out', '::1', '2025-02-15 11:28:22'),
 (256, 2, 'login', 'User logged in successfully', '::1', '2025-02-15 11:38:05'),
-(257, 2, 'exam_publish', 'Exam (ID: 2) status changed to published', '::1', '2025-02-15 11:38:24');
+(257, 2, 'exam_publish', 'Exam (ID: 2) status changed to published', '::1', '2025-02-15 11:38:24'),
+(258, 15, 'login', 'User logged in successfully', '::1', '2025-02-15 13:59:17'),
+(259, 15, 'login', 'User logged in successfully', '::1', '2025-02-16 10:57:43'),
+(260, 15, 'logout', 'User logged out', '::1', '2025-02-16 12:32:34'),
+(261, 15, 'login', 'User logged in successfully', '::1', '2025-02-16 12:32:39'),
+(262, 15, 'logout', 'User logged out', '::1', '2025-02-16 13:03:45'),
+(263, 14, 'login', 'User logged in successfully', '::1', '2025-02-16 13:03:51'),
+(264, 14, 'logout', 'User logged out', '::1', '2025-02-16 14:09:38'),
+(265, 5, 'login', 'User logged in successfully', '::1', '2025-02-16 14:09:53'),
+(266, 5, 'logout', 'User logged out', '::1', '2025-02-16 14:11:16'),
+(267, 13, 'login', 'User logged in successfully', '::1', '2025-02-16 14:11:25'),
+(268, 13, 'logout', 'User logged out', '::1', '2025-02-16 14:28:49'),
+(269, 12, 'login', 'User logged in successfully', '::1', '2025-02-16 14:28:59'),
+(270, 12, 'logout', 'User logged out', '::1', '2025-02-16 14:29:15'),
+(271, 12, 'login', 'User logged in successfully', '::1', '2025-02-16 14:29:26');
 
 -- --------------------------------------------------------
 
@@ -390,6 +404,17 @@ CREATE TABLE `applicant_answers` (
   `score` int(11) DEFAULT NULL,
   `submitted_at` timestamp NOT NULL DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `applicant_answers`
+--
+
+INSERT INTO `applicant_answers` (`id`, `applicant_id`, `exam_id`, `question_id`, `answer`, `is_correct`, `score`, `submitted_at`) VALUES
+(2, 15, 2, 1, '12', 0, 0, '2025-02-16 12:54:38'),
+(3, 15, 2, 2, 'qw', 0, 0, '2025-02-16 12:54:38'),
+(4, 15, 2, 3, '456', 0, 0, '2025-02-16 12:54:38'),
+(5, 15, 2, 4, '12', 0, 0, '2025-02-16 12:54:38'),
+(6, 15, 2, 5, '123', 0, 0, '2025-02-16 12:54:38');
 
 -- --------------------------------------------------------
 
@@ -492,9 +517,24 @@ CREATE TABLE `exam_results` (
   `score` int(11) NOT NULL,
   `passing_score` int(11) NOT NULL,
   `status` enum('pass','fail') NOT NULL,
+  `started_at` datetime DEFAULT NULL,
   `completed_at` timestamp NOT NULL DEFAULT current_timestamp(),
+  `completion_time` int(11) DEFAULT NULL,
   `created_at` datetime DEFAULT current_timestamp()
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `exam_results`
+--
+
+INSERT INTO `exam_results` (`id`, `applicant_id`, `exam_id`, `score`, `passing_score`, `status`, `started_at`, `completed_at`, `completion_time`, `created_at`) VALUES
+(23, 9, 2, 0, 75, 'fail', NULL, '2025-02-16 12:54:38', NULL, '2025-02-16 20:54:38'),
+(24, 15, 2, 0, 75, 'fail', NULL, '2025-02-16 12:54:38', NULL, '2025-02-16 20:54:38'),
+(27, 14, 2, 75, 75, 'pass', NULL, '2025-02-16 14:03:15', NULL, '2025-02-16 22:03:15'),
+(28, 14, 2, 75, 75, 'pass', NULL, '2025-02-16 14:03:15', NULL, '2025-02-16 22:03:15'),
+(29, 13, 2, 75, 75, 'pass', NULL, '2025-02-16 14:11:43', NULL, '2025-02-16 22:11:43'),
+(30, 13, 2, 75, 75, 'pass', NULL, '2025-02-16 14:11:43', NULL, '2025-02-16 22:11:43'),
+(31, 12, 2, 75, 75, 'pass', NULL, '2025-02-16 14:29:11', NULL, '2025-02-16 22:29:11');
 
 -- --------------------------------------------------------
 
@@ -632,7 +672,12 @@ INSERT INTO `status_history` (`id`, `user_id`, `status`, `notes`, `created_by`, 
 (1, 15, 'approved', '', 5, '2025-02-15 07:15:27'),
 (2, 16, 'rejected', '', 5, '2025-02-15 09:16:29'),
 (3, 14, 'pending', '', 5, '2025-02-15 09:43:11'),
-(4, 14, 'approved', '', 5, '2025-02-15 09:44:23');
+(4, 14, 'approved', '', 5, '2025-02-15 09:44:23'),
+(5, 13, 'approved', '', 5, '2025-02-16 14:10:18'),
+(6, 12, 'approved', '', 5, '2025-02-16 14:10:40'),
+(7, 11, 'approved', '', 5, '2025-02-16 14:10:42'),
+(8, 10, 'approved', '', 5, '2025-02-16 14:10:46'),
+(9, 9, 'approved', '', 5, '2025-02-16 14:11:05');
 
 -- --------------------------------------------------------
 
@@ -680,11 +725,11 @@ CREATE TABLE `users` (
 INSERT INTO `users` (`id`, `email`, `password`, `first_name`, `last_name`, `role`, `status`, `created_at`, `updated_at`, `updated_by`) VALUES
 (2, 'abellera.cj.bsinfotech@gmail.com', '$2y$10$GutilQeoQQlOqddBN.eOcuz2JDM4Xw8CGJMaTV8ANHBfms7OGiqfG', 'Carlo Joshua', 'Abellera', 'super_admin', 'active', '2025-02-12 02:50:16', '2025-02-14 06:00:43', NULL),
 (5, 'test_admin@gmail.com', '$2y$10$im1kdvuom2.t/ku3opOvHOBG7fNdSngM4XOdSMFiX8GDPWgqcp/se', '', '', 'admin', 'active', '2025-02-14 06:06:03', '2025-02-14 06:06:03', NULL),
-(9, 'testingapplicant@gmail.com', '$2y$10$t8w2EU/cdswTUrV2wbKRTeMgbuGf2uwEdo4gmZAIwVTjElllIVSNS', '', '', 'applicant', 'pending', '2025-02-14 10:29:37', '2025-02-14 10:29:37', NULL),
-(10, 'testingapplicant2@gmail.com', '$2y$10$KF99MANxSdg6MglMMKXKJenkRIhjyTrZtYmefE.tpdTRRs.nKkpcW', '', '', 'applicant', 'pending', '2025-02-14 10:32:05', '2025-02-14 10:32:05', NULL),
-(11, 'testingapplicant3@gmail.com', '$2y$10$K84gqSvABeAhWLCeHRaPiu/VTzwfyDASfkp/zEjQf2gD/9biHFR4q', '', '', 'applicant', 'pending', '2025-02-14 10:34:16', '2025-02-14 10:34:16', NULL),
-(12, 'testingapplicant4@gmail.com', '$2y$10$yta6GEhZyGWplgXkrm6RTeuK1AuirVxwr2sjqrHCW7kAF29JS/Ud6', '', '', 'applicant', 'pending', '2025-02-14 10:38:37', '2025-02-14 10:38:37', NULL),
-(13, 'testingapplicant5@gmail.com', '$2y$10$PK/e4PgeWel2Pvbte2D84ejd9KkMvwJSCopS/YsQvcRTjfVvM4HuC', '', '', 'applicant', 'pending', '2025-02-14 10:43:12', '2025-02-14 10:43:12', NULL),
+(9, 'testingapplicant@gmail.com', '$2y$10$t8w2EU/cdswTUrV2wbKRTeMgbuGf2uwEdo4gmZAIwVTjElllIVSNS', '', '', 'applicant', 'approved', '2025-02-14 10:29:37', '2025-02-16 14:11:05', 5),
+(10, 'testingapplicant2@gmail.com', '$2y$10$KF99MANxSdg6MglMMKXKJenkRIhjyTrZtYmefE.tpdTRRs.nKkpcW', '', '', 'applicant', 'approved', '2025-02-14 10:32:05', '2025-02-16 14:10:46', 5),
+(11, 'testingapplicant3@gmail.com', '$2y$10$K84gqSvABeAhWLCeHRaPiu/VTzwfyDASfkp/zEjQf2gD/9biHFR4q', '', '', 'applicant', 'approved', '2025-02-14 10:34:16', '2025-02-16 14:10:42', 5),
+(12, 'testingapplicant4@gmail.com', '$2y$10$yta6GEhZyGWplgXkrm6RTeuK1AuirVxwr2sjqrHCW7kAF29JS/Ud6', '', '', 'applicant', 'approved', '2025-02-14 10:38:37', '2025-02-16 14:10:39', 5),
+(13, 'testingapplicant5@gmail.com', '$2y$10$PK/e4PgeWel2Pvbte2D84ejd9KkMvwJSCopS/YsQvcRTjfVvM4HuC', '', '', 'applicant', 'approved', '2025-02-14 10:43:12', '2025-02-16 14:10:18', 5),
 (14, 'testingapplicant6@gmail.com', '$2y$10$iiDQuEDvbWoR0QcRIXhIi.TrfIO1NMCAC0mtayWlGx4p.A.5IyGxa', '', '', 'applicant', 'approved', '2025-02-14 10:49:44', '2025-02-15 09:44:23', 5),
 (15, 'testingapplicant7@gmail.com', '$2y$10$4U6Xp.i5SMwPtXu0tMv9guKwbd8SSA8ONwyTyAl4QoaD4NUx4xFH.', '', '', 'applicant', 'approved', '2025-02-14 10:55:38', '2025-02-15 09:34:10', 5),
 (16, 'john_doe.mama@gmail.com', '$2y$10$QesfjKh7Xdd6P6BWO96ACegaOitFDLyxl6AheQZR3/ykoYXOstsIK', '', '', 'applicant', 'rejected', '2025-02-15 08:33:10', '2025-02-15 09:16:29', 5);
@@ -837,7 +882,7 @@ ALTER TABLE `users`
 -- AUTO_INCREMENT for table `activity_logs`
 --
 ALTER TABLE `activity_logs`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=258;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=272;
 
 --
 -- AUTO_INCREMENT for table `admins`
@@ -861,7 +906,7 @@ ALTER TABLE `applicants`
 -- AUTO_INCREMENT for table `applicant_answers`
 --
 ALTER TABLE `applicant_answers`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 
 --
 -- AUTO_INCREMENT for table `application_status`
@@ -891,7 +936,7 @@ ALTER TABLE `exams`
 -- AUTO_INCREMENT for table `exam_results`
 --
 ALTER TABLE `exam_results`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=32;
 
 --
 -- AUTO_INCREMENT for table `exam_status`
@@ -927,7 +972,7 @@ ALTER TABLE `questions`
 -- AUTO_INCREMENT for table `status_history`
 --
 ALTER TABLE `status_history`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=10;
 
 --
 -- AUTO_INCREMENT for table `super_admins`
@@ -975,9 +1020,9 @@ ALTER TABLE `applicants`
 -- Constraints for table `applicant_answers`
 --
 ALTER TABLE `applicant_answers`
-  ADD CONSTRAINT `applicant_answers_ibfk_1` FOREIGN KEY (`applicant_id`) REFERENCES `applicants` (`id`),
   ADD CONSTRAINT `applicant_answers_ibfk_2` FOREIGN KEY (`exam_id`) REFERENCES `exams` (`id`),
-  ADD CONSTRAINT `applicant_answers_ibfk_3` FOREIGN KEY (`question_id`) REFERENCES `questions` (`id`);
+  ADD CONSTRAINT `applicant_answers_ibfk_3` FOREIGN KEY (`question_id`) REFERENCES `questions` (`id`),
+  ADD CONSTRAINT `fk_applicant_answers_applicant` FOREIGN KEY (`applicant_id`) REFERENCES `applicants` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `exams`
@@ -989,8 +1034,8 @@ ALTER TABLE `exams`
 -- Constraints for table `exam_results`
 --
 ALTER TABLE `exam_results`
-  ADD CONSTRAINT `exam_results_ibfk_1` FOREIGN KEY (`applicant_id`) REFERENCES `applicants` (`id`),
-  ADD CONSTRAINT `exam_results_ibfk_2` FOREIGN KEY (`exam_id`) REFERENCES `exams` (`id`);
+  ADD CONSTRAINT `exam_results_ibfk_2` FOREIGN KEY (`exam_id`) REFERENCES `exams` (`id`),
+  ADD CONSTRAINT `fk_exam_results_applicant` FOREIGN KEY (`applicant_id`) REFERENCES `applicants` (`user_id`) ON DELETE CASCADE;
 
 --
 -- Constraints for table `interview_schedules`

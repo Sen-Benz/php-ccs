@@ -29,6 +29,7 @@ try {
     // Get applicant's exam results
     $stmt = $db->query(
         "SELECT er.*, e.title as exam_title, e.duration_minutes,
+                (SELECT SUM(q.points) FROM questions q WHERE q.exam_id = er.exam_id) AS total_points,
                 DATE_FORMAT(er.created_at, '%M %d, %Y') as completion_date
          FROM exam_results er
          JOIN exams e ON er.exam_id = e.id
@@ -36,7 +37,8 @@ try {
          ORDER BY er.created_at DESC
          LIMIT 5",
         [$user_id]
-    );    
+    );
+        
     $recent_exams = $stmt->fetchAll();
 
     // Get total exams taken
@@ -185,18 +187,23 @@ get_header('Dashboard');
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            <?php foreach ($recent_exams as $exam): ?>
-                                                <tr>
-                                                    <td><?php echo safe_string($exam['exam_title']); ?></td>
-                                                    <td>
-                                                        <span class="badge <?php echo getScoreBadgeClass($exam['score'] ?? 0); ?>">
-                                                            <?php echo number_format($exam['score'] ?? 0, 1); ?>%
-                                                        </span>
-                                                    </td>
-                                                    <td><?php echo number_format($exam['completion_time'] ?? 0, 1); ?> min</td>
-                                                    <td><?php echo safe_string($exam['completion_date']); ?></td>
-                                                </tr>
-                                            <?php endforeach; ?>
+                                        <?php foreach ($recent_exams as $exam): ?>
+    <?php
+    $total_points = $exam['total_points'] ?? 1; // Avoid division by zero
+    $percentage_score = ($exam['score'] / $total_points) * 100;
+    ?>
+    <tr>
+        <td><?php echo safe_string($exam['exam_title']); ?></td>
+        <td>
+            <span class="badge <?php echo getScoreBadgeClass($percentage_score); ?>">
+                <?php echo number_format($percentage_score, 1); ?>%
+            </span>
+        </td>
+        <td><?php echo number_format($exam['completion_time'] ?? 0, 1); ?> min</td>
+        <td><?php echo safe_string($exam['completion_date']); ?></td>
+    </tr>
+<?php endforeach; ?>
+
                                         </tbody>
                                     </table>
                                 </div>
