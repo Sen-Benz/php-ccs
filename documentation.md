@@ -210,6 +210,6 @@ define('DB_PASS', 'your_password');
 - Database Administrator: [dba@example.com](mailto:dba@example.com)
 
 ## License and Credits
-- Developed for College of Computer Studies
+- Developed for College of Computing Studies
 - Copyright © 2025
 - All rights reserved
