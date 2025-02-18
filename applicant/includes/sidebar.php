@@ -36,11 +36,17 @@ try {
     );
     
     $exam_stats = $stmt->fetch();
+
+    // Get unread notifications count
+    $stmt = $db->getConnection()->prepare("SELECT COUNT(*) as count FROM notifications WHERE user_id = ? AND is_read = 0");
+    $stmt->execute([$_SESSION['user_id']]);
+    $unread_count = $stmt->fetch(PDO::FETCH_ASSOC)['count'];
 } catch (Exception $e) {
     error_log("Sidebar Error: " . $e->getMessage());
     $user = ['first_name' => 'User', 'last_name' => ''];
     $applicant = ['status' => 'registered'];
     $exam_stats = ['total_exams' => 0, 'avg_score' => 0];
+    $unread_count = 0;
 }
 
 // Get current page for active menu highlighting
@@ -105,6 +111,17 @@ $current_page = basename($_SERVER['PHP_SELF']);
                             <span class="badge <?php echo getScoreBadgeClass($exam_stats['avg_score']); ?> rounded-pill ms-2">
                                 <?php echo number_format($exam_stats['avg_score'], 1); ?>%
                             </span>
+                        <?php endif; ?>
+                    </a>
+                </li>
+
+                <li class="nav-item">
+                    <a href="<?php echo BASE_URL; ?>applicant/notifications.php" 
+                       class="nav-link <?php echo $current_page === 'notifications.php' ? 'active' : ''; ?>">
+                        <i class="bx bxs-bell"></i>
+                        <span>Notifications</span>
+                        <?php if ($unread_count > 0): ?>
+                            <span class="badge bg-danger rounded-pill ms-2"><?php echo $unread_count; ?></span>
                         <?php endif; ?>
                     </a>
                 </li>

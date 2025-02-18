@@ -3,6 +3,7 @@ require_once '../config/config.php';
 require_once '../classes/Auth.php';
 require_once '../includes/layout.php';
 require_once '../includes/utilities.php';
+require_once '../config/Database.php';
 
 // Check if user is logged in
 if (!isset($_SESSION['user_id'])) {
@@ -11,7 +12,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
-$db = Database::getInstance();;
+$db = Database::getInstance();
 
 // Initialize variables
 $faqs = [];
